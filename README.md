@@ -47,7 +47,7 @@ Acesso em `http://IP_DO_SERVIDOR` — login: **admin** / senha: **admin**
 
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/SEU_UTILIZADOR/clinic.git /opt/dental-clinic
+git clone https://github.com/SEU_UTILIZADOR/clinic.git /opt/clinic
 cd /opt/clinic
 
 # 2. Criar ambiente virtual e instalar dependências
