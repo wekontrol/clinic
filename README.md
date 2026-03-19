@@ -127,16 +127,16 @@ dental-clinic/
 
 ```bash
 # Ver estado
-systemctl status dental-clinic
+systemctl status clinic
 
 # Ver logs em tempo real
-journalctl -u dental-clinic -f
+journalctl -u clinic -f
 
 # Reiniciar
 systemctl restart dental-clinic
 
 # Atualizar para nova versão
-cd /opt/dental-clinic
+cd /opt/clinic
 git pull
 systemctl restart dental-clinic
 ```
