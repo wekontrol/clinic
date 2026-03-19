@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Pacientes') }}{% endblock %}
+{% block page_title %}<i class="bi bi-people-fill me-2"></i>{{ _('Gestão de Pacientes') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.pt-cards { display: none; }
+@media (max-width: 767px) {
+  .pt-cards      { display: flex; flex-direction: column; gap: .6rem; }
+  .pt-table-wrap { display: none; }
+}
+.pt-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.pt-card:active { background: var(--dc-surface); }
+.pt-card-body   { flex: 1; min-width: 0; }
+.pt-card-name   { font-size: .93rem; font-weight: 600; color: var(--dc-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-card-meta   { font-size: .75rem; color: var(--dc-text-muted); margin-top: .2rem; display: flex; flex-wrap: wrap; gap: .35rem .8rem; }
+.pt-card-meta span { display: flex; align-items: center; gap: .25rem; }
+.pt-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <p class="mb-0" style="color:var(--dc-text-muted);font-size:.85rem">
+      {{ _('Registo e gestão de perfis de pacientes') }}
+    </p>
+  </div>
+  {% if current_user.role in ['superadmin','clinical_director','reception','dentist'] %}
+  <div class="d-flex gap-2">
+    {% if current_user.role in ['superadmin','clinical_director','reception'] %}
+    <a href="{{ url_for('scheduling.emergency') }}" class="btn btn-danger btn-sm">
+      <i class="bi bi-exclamation-octagon-fill me-1"></i>{{ _('Urgência') }}
+    </a>
+    {% endif %}
+    <a href="{{ url_for('patients.new') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-person-plus-fill me-1"></i>{{ _('Novo Paciente') }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Search -->
+<div class="dc-card mb-4">
+  <form method="GET" action="" class="d-flex gap-2 flex-wrap">
+    <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+           placeholder="{{ _('Pesquisar por nome...') }}" style="max-width:320px">
+    <button type="submit" class="btn btn-sm btn-primary">
+      <i class="bi bi-search me-1"></i>{{ _('Pesquisar') }}
+    </button>
+    {% if search %}
+    <a href="{{ url_for('patients.index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-x-circle me-1"></i>{{ _('Limpar') }}
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+{% if patients.items %}
+
+<!-- ══ MOBILE CARDS ══ -->
+<div class="pt-cards">
+  {% for patient in patients.items %}
+  <div class="pt-card" onclick="location.href='{{ url_for('patients.detail', patient_id=patient.id) }}'">
+    <!-- Avatar -->
+    {% if patient.photo_path %}
+    <img src="{{ url_for('main.serve_upload', filename=patient.photo_path) }}"
+         alt="" width="40" height="40"
+         style="border-radius:50%;object-fit:cover;border:2px solid var(--dc-border);flex-shrink:0">
+    {% else %}
+    <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--dc-primary),var(--dc-primary-d));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff;flex-shrink:0">
+      {{ patient.full_name[:2].upper() }}
+    </div>
+    {% endif %}
+
+    <!-- Body -->
+    <div class="pt-card-body">
+      <div class="pt-card-name">{{ patient.full_name }}</div>
+      <div class="pt-card-meta">
+        {% if patient.phone %}
+        <span><i class="bi bi-telephone-fill"></i>{{ patient.phone }}</span>
+        {% endif %}
+        {% if patient.id_doc %}
+        <span><i class="bi bi-card-text"></i>{{ patient.id_doc }}</span>
+        {% endif %}
+        {% if patient.assigned_dentist %}
+        <span><i class="bi bi-person-badge-fill"></i>{{ patient.assigned_dentist.full_name }}</span>
+        {% endif %}
+        {% if not patient.phone and not patient.id_doc and not patient.assigned_dentist %}
+        <span style="opacity:.4">{{ _('Sem dados') }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="pt-card-actions">
+      {% if current_user.role in ['superadmin','clinical_director','reception','dentist'] %}
+      <a href="{{ url_for('patients.edit', patient_id=patient.id) }}"
+         class="btn btn-sm btn-primary py-1 px-2"
+         onclick="event.stopPropagation()" title="{{ _('Editar') }}">
+        <i class="bi bi-pencil-fill" style="font-size:.75rem"></i>
+      </a>
+      {% endif %}
+      <a href="{{ url_for('patients.detail', patient_id=patient.id) }}"
+         class="btn btn-sm btn-outline-secondary py-1 px-2"
+         onclick="event.stopPropagation()">
+        <i class="bi bi-info-circle-fill" style="font-size:.75rem"></i>
+        <span style="font-size:.7rem">{{ _('Detalhes') }}</span>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ══ DESKTOP TABLE ══ -->
+<div class="dc-card pt-table-wrap">
+  <div class="table-responsive">
+    <table class="table dc-table">
+      <thead>
+        <tr>
+          <th>{{ _('Nome') }}</th>
+          <th>{{ _('Telefone') }}</th>
+          <th>{{ _('Doc. Identificação') }}</th>
+          <th>{{ _('Dentista Responsável') }}</th>
+          <th>{{ _('Criado em') }}</th>
+          <th class="text-end">{{ _('Ações') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for patient in patients.items %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if patient.photo_path %}
+              <img src="{{ url_for('main.serve_upload', filename=patient.photo_path) }}"
+                   alt="" width="32" height="32"
+                   style="border-radius:50%;object-fit:cover;border:2px solid var(--dc-border)">
+              {% else %}
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--dc-primary),var(--dc-primary-d));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#fff;flex-shrink:0">
+                {{ patient.full_name[:2].upper() }}
+              </div>
+              {% endif %}
+              <div>
+                <a href="{{ url_for('patients.detail', patient_id=patient.id) }}"
+                   class="fw-600 text-decoration-none" style="color:var(--dc-white)">
+                  {{ patient.full_name }}
+                </a>
+                {% if patient.email %}
+                <div style="font-size:.72rem;color:var(--dc-text-muted)">{{ patient.email }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td>{{ patient.phone or '—' }}</td>
+          <td>{{ patient.id_doc or '—' }}</td>
+          <td>
+            {% if patient.assigned_dentist %}
+            <span style="color:var(--dc-success)">{{ patient.assigned_dentist.full_name }}</span>
+            {% else %}
+            <span style="color:var(--dc-text-muted)">—</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--dc-text-muted);font-size:.82rem">
+            {{ patient.created_at.strftime('%d/%m/%Y') if patient.created_at else '—' }}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('patients.detail', patient_id=patient.id) }}"
+               class="btn btn-sm btn-outline-primary me-1" title="{{ _('Ver') }}">
+              <i class="bi bi-eye-fill"></i>
+            </a>
+            {% if current_user.role in ['superadmin','clinical_director','reception','dentist'] %}
+            <a href="{{ url_for('patients.edit', patient_id=patient.id) }}"
+               class="btn btn-sm btn-outline-secondary" title="{{ _('Editar') }}">
+              <i class="bi bi-pencil-fill"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if patients.pages > 1 %}
+  <nav class="mt-3">
+    <ul class="pagination pagination-sm mb-0">
+      {% for pg in patients.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if pg %}
+        <li class="page-item {% if pg == patients.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('patients.index', page=pg, q=search) }}">{{ pg }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+
+<!-- Mobile pagination -->
+{% if patients.pages > 1 %}
+<div class="d-flex justify-content-center mt-3 d-md-none">
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      {% for pg in patients.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+        {% if pg %}
+        <li class="page-item {% if pg == patients.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('patients.index', page=pg, q=search) }}">{{ pg }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+
+{% else %}
+<div class="dc-card text-center py-5">
+  <div style="font-size:3rem;color:var(--dc-text-muted)"><i class="bi bi-people"></i></div>
+  <p class="mt-2" style="color:var(--dc-text-muted)">{{ _('Nenhum paciente encontrado') }}</p>
+  {% if current_user.role in ['superadmin','clinical_director','reception'] %}
+  <a href="{{ url_for('patients.new') }}" class="btn btn-primary mt-2">
+    <i class="bi bi-person-plus-fill me-2"></i>{{ _('Registar Primeiro Paciente') }}
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

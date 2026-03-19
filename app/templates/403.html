@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _('Acesso Negado') }} — DentalCare Pro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/dental.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="dc-login-bg">
+  <div class="dc-login-card text-center">
+    <div style="font-size:4rem;color:var(--dc-danger)"><i class="bi bi-shield-x-fill"></i></div>
+    <h2 style="color:var(--dc-white);margin-top:1rem">403 — {{ _('Acesso Negado') }}</h2>
+    <p style="color:var(--dc-text-muted);font-size:.9rem">{{ _('Não tem permissão para aceder a esta página.') }}</p>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary mt-2">
+      <i class="bi bi-house-fill me-2"></i>{{ _('Voltar ao Dashboard') }}
+    </a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}{% if product %}{{ _('Editar') }} {{ product.name_pt }}{% else %}{{ _('Novo Produto') }}{% endif %}{% endblock %}
+{% block page_title %}
+<i class="bi bi-box-seam-fill me-2" style="color:var(--dc-primary)"></i>
+{% if product %}{{ _('Editar Produto') }}: <span style="color:var(--dc-primary)">{{ product.name_pt }}</span>
+{% else %}{{ _('Novo Produto de Stock') }}{% endif %}
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="dc-card p-4 mb-4">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--dc-primary);margin-bottom:1rem;border-bottom:1px solid var(--dc-border);padding-bottom:.5rem">
+      <i class="bi bi-info-circle-fill me-1"></i>{{ _('Identificação') }}
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.name_pt.label.text }} <span class="text-danger">*</span></label>
+        {{ form.name_pt(class='form-control' + (' is-invalid' if form.name_pt.errors else '')) }}
+        {% for e in form.name_pt.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.name_en.label.text }}</label>
+        {{ form.name_en(class='form-control') }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.name_es.label.text }}</label>
+        {{ form.name_es(class='form-control') }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.category.label.text }} <span class="text-danger">*</span></label>
+        {{ form.category(class='form-select') }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.unit.label.text }} <span class="text-danger">*</span></label>
+        {{ form.unit(class='form-select') }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.supplier.label.text }}</label>
+        {{ form.supplier(class='form-control', placeholder=_('Nome do fornecedor')) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="dc-card p-4 mb-4">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--dc-primary);margin-bottom:1rem;border-bottom:1px solid var(--dc-border);padding-bottom:.5rem">
+      <i class="bi bi-bar-chart-fill me-1"></i>{{ _('Quantidades e Preço') }}
+    </div>
+    <div class="row g-3">
+      {% if not product %}
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.qty_current.label.text }}</label>
+        {{ form.qty_current(class='form-control') }}
+        <div class="form-text">{{ _('Será registado como entrada inicial.') }}</div>
+      </div>
+      {% endif %}
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.qty_minimum.label.text }}</label>
+        {{ form.qty_minimum(class='form-control') }}
+        <div class="form-text">{{ _('Alerta activa quando stock < mínimo.') }}</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.unit_cost.label.text }}</label>
+        <div class="input-group">
+          {{ form.unit_cost(class='form-control', placeholder='0.00') }}
+          <span class="input-group-text">Kz</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dc-card p-4 mb-4">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--dc-primary);margin-bottom:1rem;border-bottom:1px solid var(--dc-border);padding-bottom:.5rem">
+      <i class="bi bi-chat-left-text-fill me-1"></i>{{ _('Notas') }}
+    </div>
+    <div class="row g-3">
+      <div class="col-12">
+        {{ form.notes(class='form-control', rows=3, placeholder=_('Observações, referência, lote, validade…')) }}
+      </div>
+      <div class="col-12">
+        <div class="form-check">
+          {{ form.is_active(class='form-check-input') }}
+          <label class="form-check-label" style="font-size:.85rem">{{ form.is_active.label.text }}</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if not product %}
+  <div class="dc-card p-4 mb-4">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--dc-primary);margin-bottom:1rem;border-bottom:1px solid var(--dc-border);padding-bottom:.5rem">
+      <i class="bi bi-receipt-cutoff me-1"></i>{{ _('Fatura / Comprovativo') }}
+      <span style="font-weight:400;font-size:.68rem;color:var(--dc-text-muted);margin-left:.5rem">{{ _('(opcional)') }}</span>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ _('Anexar fatura de compra') }}</label>
+        <input type="file" name="invoice_file" class="form-control form-control-sm"
+               accept=".pdf,.jpg,.jpeg,.png">
+        <div class="form-text">
+          <i class="bi bi-info-circle me-1"></i>
+          {{ _('PDF, JPG ou PNG · Máx.') }} {{ stock_invoice_max_mb }} MB
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="d-flex gap-2 justify-content-end">
+    <a href="{{ url_for('stock.index') }}" class="btn btn-outline-secondary">{{ _('Cancelar') }}</a>
+    <button type="submit" class="btn btn-primary px-4">
+      <i class="bi bi-floppy-fill me-2"></i>{{ _('Guardar') }}
+    </button>
+  </div>
+</form>
+{% endblock %}

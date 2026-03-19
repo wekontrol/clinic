@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Editar PDF') }} — {{ meta.label }}{% endblock %}
+{% block page_title %}
+  <i class="bi {{ meta.icon }} me-2" style="color:{{ meta.color }}"></i>{{ meta.label }}
+{% endblock %}
+
+{# Key prefix for all settings of this document type: pdf_{ptype}_* #}
+{% set kp = 'pdf_' ~ ptype ~ '_' %}
+
+{% macro field(key, label, ftype='text', placeholder='', rows=3) %}
+<div class="mb-3">
+  <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ label }}</label>
+  {% if ftype == 'textarea' %}
+  <textarea name="{{ key }}" class="form-control form-control-sm"
+            rows="{{ rows }}" style="font-size:.85rem">{{ settings.get(key, '') }}</textarea>
+  {% else %}
+  <input type="{{ ftype }}" name="{{ key }}" class="form-control form-control-sm"
+         value="{{ settings.get(key, '') }}" placeholder="{{ placeholder }}"
+         style="font-size:.85rem">
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <a href="{{ url_for('admin.pdf_templates') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.pdf_template_preview', ptype=ptype) }}"
+       target="_blank" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-eye-fill me-1"></i>{{ _('Pré-visualizar (guardado)') }}
+    </a>
+    <button type="button" id="save-preview-btn" class="btn btn-success btn-sm">
+      <i class="bi bi-eye-fill me-1"></i>{{ _('Guardar e Pré-visualizar') }}
+    </button>
+  </div>
+</div>
+
+<form method="POST" id="pdf-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="row g-4">
+    <!-- ═══ LEFT: Clinic + Style ══════════════════════════════════════════════ -->
+    <div class="col-lg-4">
+
+      <!-- ─── Dados da Clínica (per-type) ─────────────────────────────────── -->
+      <div class="dc-card p-4 mb-4">
+        <h6 class="mb-1" style="color:var(--dc-primary);font-size:.8rem;text-transform:uppercase;letter-spacing:.07em">
+          <i class="bi bi-building me-2"></i>{{ _('Dados da Clínica') }}
+        </h6>
+        <p class="form-text mb-3" style="font-size:.78rem">
+          {{ _('Específicos para este documento. Deixe em branco para usar os valores globais do sistema.') }}
+        </p>
+
+        {{ field(kp ~ 'clinic_name',     _('Nome da Clínica'),       placeholder=settings.get('app_name','DentalCare Pro')) }}
+        {{ field(kp ~ 'clinic_subtitle', _('Subtítulo / Especialidade'),
+                 placeholder=settings.get('app_subtitle', _('Clínica Odontológica'))) }}
+        {{ field(kp ~ 'clinic_address',  _('Morada'),
+                 placeholder=settings.get('app_address', _('Rua, nº, cidade'))) }}
+        {{ field(kp ~ 'clinic_phone',    _('Telefone'),
+                 placeholder=settings.get('app_phone', '+244 9xx xxx xxx')) }}
+        {{ field(kp ~ 'clinic_email',    _('E-mail'),
+                 placeholder=settings.get('app_email', 'clinica@exemplo.ao')) }}
+        {{ field(kp ~ 'clinic_nif',      _('NIF / Registo'),
+                 placeholder=settings.get('app_nif', '000 000 000')) }}
+      </div>
+
+      <!-- ─── Estilo ─────────────────────────────────────────────────────── -->
+      <div class="dc-card p-4 mb-4">
+        <h6 class="mb-3" style="color:var(--dc-primary);font-size:.8rem;text-transform:uppercase;letter-spacing:.07em">
+          <i class="bi bi-palette-fill me-2"></i>{{ _('Estilo') }}
+        </h6>
+
+        <div class="mb-3">
+          <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ _('Cor de Acento') }}</label>
+          <div class="d-flex align-items-center gap-2">
+            <input type="color" name="{{ kp }}accent_color" id="accent-picker"
+                   class="form-control form-control-color"
+                   value="{{ settings.get(kp ~ 'accent_color', '#14b8a6') }}"
+                   style="width:44px;height:36px;padding:2px;border-radius:8px;cursor:pointer">
+            <input type="text" id="accent-hex"
+                   value="{{ settings.get(kp ~ 'accent_color', '#14b8a6') }}"
+                   class="form-control form-control-sm" style="width:90px;font-family:monospace" readonly>
+          </div>
+          <div class="form-text">{{ _('Aplicada a títulos de secção e linha de acento no cabeçalho.') }}</div>
+        </div>
+
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            <input type="checkbox" class="form-check-input" role="switch"
+                   name="{{ kp }}show_logo" id="chk_logo"
+                   {% if settings.get(kp ~ 'show_logo', '1') != '0' %}checked{% endif %}>
+            <label class="form-check-label" for="chk_logo" style="font-size:.85rem">
+              {{ _('Mostrar logótipo da clínica') }}
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            <input type="checkbox" class="form-check-input" role="switch"
+                   name="{{ kp }}show_pagenum" id="chk_pn"
+                   {% if settings.get(kp ~ 'show_pagenum', '1') != '0' %}checked{% endif %}>
+            <label class="form-check-label" for="chk_pn" style="font-size:.85rem">
+              {{ _('Mostrar número de página') }}
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-0">
+          <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">
+            {{ _('Marca de Água (opcional)') }}
+          </label>
+          <input type="text" name="{{ kp }}watermark_text" class="form-control form-control-sm"
+                 value="{{ settings.get(kp ~ 'watermark_text', '') }}"
+                 placeholder="{{ _('Ex: CONFIDENCIAL') }}" style="font-size:.85rem">
+          <div class="form-text">{{ _('Texto diagonal subtil impresso em cada página. Deixe em branco para desativar.') }}</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-floppy-fill me-2"></i>{{ _('Guardar Alterações') }}
+      </button>
+    </div>
+
+    <!-- ═══ RIGHT: Document Texts ══════════════════════════════════════════════ -->
+    <div class="col-lg-8">
+      <div class="dc-card p-4">
+        <h6 class="mb-3" style="color:var(--dc-primary);font-size:.8rem;text-transform:uppercase;letter-spacing:.07em">
+          <i class="bi bi-translate me-2"></i>{{ _('Textos do Documento') }}
+        </h6>
+
+        <ul class="nav nav-tabs mb-4" role="tablist">
+          {% for lang, flag, lang_label in [('pt','🇵🇹','Português'), ('en','🇬🇧','English'), ('es','🇪🇸','Español')] %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link {% if loop.first %}active{% endif %}"
+                    data-bs-toggle="tab" data-bs-target="#panel-{{ lang }}"
+                    type="button" role="tab" style="font-size:.85rem">
+              {{ flag }} {{ lang_label }}
+            </button>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <div class="tab-content">
+          {% for lang in ['pt', 'en', 'es'] %}
+          <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="panel-{{ lang }}" role="tabpanel">
+
+            {# ── Common header labels (all 3 doc types share same fields) ─── #}
+            {% set common_defaults = {
+              'patient': {'pt':'Paciente','en':'Patient','es':'Paciente'},
+              'dentist': {'pt':'Dentista','en':'Dentist','es':'Dentista'},
+              'session': {'pt':'Sessão','en':'Session','es':'Sesión'},
+              'date':    {'pt':'Data','en':'Date','es':'Fecha'},
+            } %}
+
+            {# ── Treatment Plan ─────────────────────────────────────────── #}
+            {% if ptype == 'treatment_plan' %}
+            {% set tp_fields = [
+              (kp ~ 'title_' ~ lang,       _('Título do documento'),          'text',     {'pt':'PLANO DE TRATAMENTO','en':'TREATMENT PLAN','es':'PLAN DE TRATAMIENTO'}[lang]),
+              (kp ~ 'patient_' ~ lang,     _('Rótulo: Paciente'),             'text',     common_defaults['patient'][lang]),
+              (kp ~ 'dentist_' ~ lang,     _('Rótulo: Dentista'),             'text',     common_defaults['dentist'][lang]),
+              (kp ~ 'session_' ~ lang,     _('Rótulo: Sessão'),               'text',     common_defaults['session'][lang]),
+              (kp ~ 'date_' ~ lang,        _('Rótulo: Data'),                 'text',     common_defaults['date'][lang]),
+              (kp ~ 'diagnosis_' ~ lang,   _('Secção: Diagnóstico'),          'text',     {'pt':'Diagnóstico','en':'Diagnosis','es':'Diagnóstico'}[lang]),
+              (kp ~ 'notes_' ~ lang,       _('Secção: Notas Clínicas'),       'text',     {'pt':'Notas Clínicas','en':'Clinical Notes','es':'Notas Clínicas'}[lang]),
+              (kp ~ 'plan_' ~ lang,        _('Secção: Plano de Tratamento'),  'text',     {'pt':'Plano de Tratamento','en':'Treatment Plan','es':'Plan de Tratamiento'}[lang]),
+              (kp ~ 'procedures_' ~ lang,  _('Secção: Procedimentos'),        'text',     {'pt':'Procedimentos Realizados','en':'Procedures Performed','es':'Procedimientos Realizados'}[lang]),
+              (kp ~ 'procedure_' ~ lang,   _('Coluna: Procedimento'),         'text',     {'pt':'Procedimento','en':'Procedure','es':'Procedimiento'}[lang]),
+              (kp ~ 'qty_' ~ lang,         _('Coluna: Quantidade'),           'text',     {'pt':'Qtd.','en':'Qty','es':'Cant.'}[lang]),
+              (kp ~ 'price_' ~ lang,       _('Coluna: Valor'),                'text',     {'pt':'Valor (Kz)','en':'Price (Kz)','es':'Precio (Kz)'}[lang]),
+              (kp ~ 'total_label_' ~ lang, _('Etiqueta: Total'),              'text',     {'pt':'Total:','en':'Total:','es':'Total:'}[lang]),
+              (kp ~ 'sig_' ~ lang,         _('Etiqueta de Assinatura'),       'text',     {'pt':'Assinatura do Dentista','en':'Dentist Signature','es':'Firma del Dentista'}[lang]),
+              (kp ~ 'footer_' ~ lang,      _('Texto do Rodapé'),              'text',     {'pt':'Documento gerado pelo sistema','en':'Document generated by the system','es':'Documento generado por el sistema'}[lang]),
+            ] %}
+            {% for fk, fl, ft, fd in tp_fields %}
+            <div class="mb-3">
+              <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ fl }}</label>
+              <input type="{{ ft }}" name="{{ fk }}" class="form-control form-control-sm"
+                     value="{{ settings.get(fk, '') or fd }}" style="font-size:.85rem">
+            </div>
+            {% endfor %}
+
+            {# ── Consent Form ─────────────────────────────────────────── #}
+            {% elif ptype == 'consent_form' %}
+            {% set cf_fields_simple = [
+              (kp ~ 'title_' ~ lang,       _('Título do documento'),           'text',
+               {'pt':'TERMO DE CONSENTIMENTO INFORMADO','en':'INFORMED CONSENT FORM','es':'FORMULARIO DE CONSENTIMIENTO INFORMADO'}[lang]),
+              (kp ~ 'patient_' ~ lang,     _('Rótulo: Paciente'),              'text',    common_defaults['patient'][lang]),
+              (kp ~ 'dentist_' ~ lang,     _('Rótulo: Dentista'),              'text',    common_defaults['dentist'][lang]),
+              (kp ~ 'session_' ~ lang,     _('Rótulo: Sessão'),                'text',    common_defaults['session'][lang]),
+              (kp ~ 'date_' ~ lang,        _('Rótulo: Data'),                  'text',    common_defaults['date'][lang]),
+              (kp ~ 'plan_' ~ lang,        _('Secção: Plano de Tratamento'),   'text',
+               {'pt':'Plano de Tratamento','en':'Treatment Plan','es':'Plan de Tratamiento'}[lang]),
+              (kp ~ 'patient_sig_' ~ lang, _('Etiqueta: Assinatura Paciente'), 'text',
+               {'pt':'Assinatura do Paciente','en':'Patient Signature','es':'Firma del Paciente'}[lang]),
+              (kp ~ 'dentist_sig_' ~ lang, _('Etiqueta: Assinatura Dentista'), 'text',
+               {'pt':'Assinatura do Dentista','en':'Dentist Signature','es':'Firma del Dentista'}[lang]),
+              (kp ~ 'date_place_' ~ lang,  _('Etiqueta: Local e Data'),        'text',
+               {'pt':'Local e Data','en':'Place and Date','es':'Lugar y Fecha'}[lang]),
+              (kp ~ 'footer_' ~ lang,      _('Texto do Rodapé'),               'text',
+               {'pt':'Documento gerado pelo sistema','en':'Document generated by the system','es':'Documento generado por el sistema'}[lang]),
+            ] %}
+            {% for fk, fl, ft, fd in cf_fields_simple %}
+            <div class="mb-3">
+              <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ fl }}</label>
+              <input type="{{ ft }}" name="{{ fk }}" class="form-control form-control-sm"
+                     value="{{ settings.get(fk, '') or fd }}" style="font-size:.85rem">
+            </div>
+            {% endfor %}
+            {# Intro textarea separately #}
+            <div class="mb-3">
+              <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ _('Texto de Consentimento') }}</label>
+              <textarea name="{{ kp ~ 'intro_' ~ lang }}" class="form-control form-control-sm"
+                        rows="5" style="font-size:.85rem">{{ settings.get(kp ~ 'intro_' ~ lang, '') or
+                {'pt':'Eu, abaixo assinado(a), declaro que fui devidamente informado(a) pelo(a) Dentista acima identificado(a) sobre o tratamento proposto, seus riscos, benefícios e alternativas. Autorizo livremente a realização do tratamento.',
+                 'en':'I, the undersigned, declare that I have been duly informed by the Dentist identified above about the proposed treatment, its risks, benefits and alternatives. I freely consent to the performance of the treatment.',
+                 'es':'Yo, el abajo firmante, declaro que he sido debidamente informado(a) por el/la Dentista identificado(a) arriba sobre el tratamiento propuesto. Consiento libremente en la realización del tratamiento.'}[lang] }}</textarea>
+            </div>
+
+            {# ── Prescription ─────────────────────────────────────────── #}
+            {% else %}
+            {% set rx_fields = [
+              (kp ~ 'title_' ~ lang,        _('Título do documento'),          'text',
+               {'pt':'RECEITA MÉDICA','en':'MEDICAL PRESCRIPTION','es':'RECETA MÉDICA'}[lang]),
+              (kp ~ 'patient_' ~ lang,      _('Rótulo: Paciente'),             'text',    common_defaults['patient'][lang]),
+              (kp ~ 'dentist_' ~ lang,      _('Rótulo: Dentista'),             'text',    common_defaults['dentist'][lang]),
+              (kp ~ 'session_' ~ lang,      _('Rótulo: Sessão'),               'text',    common_defaults['session'][lang]),
+              (kp ~ 'date_' ~ lang,         _('Rótulo: Data'),                 'text',    common_defaults['date'][lang]),
+              (kp ~ 'medicine_' ~ lang,     _('Coluna: Medicamento'),          'text',
+               {'pt':'Medicamento','en':'Medicine','es':'Medicamento'}[lang]),
+              (kp ~ 'dosage_' ~ lang,       _('Coluna: Dosagem'),              'text',
+               {'pt':'Dosagem','en':'Dosage','es':'Dosis'}[lang]),
+              (kp ~ 'frequency_' ~ lang,    _('Coluna: Frequência'),           'text',
+               {'pt':'Frequência','en':'Frequency','es':'Frecuencia'}[lang]),
+              (kp ~ 'duration_' ~ lang,     _('Coluna: Duração'),              'text',
+               {'pt':'Duração','en':'Duration','es':'Duración'}[lang]),
+              (kp ~ 'instructions_' ~ lang, _('Coluna: Instruções'),           'text',
+               {'pt':'Instruções','en':'Instructions','es':'Instrucciones'}[lang]),
+              (kp ~ 'section_rp_' ~ lang,   _('Cabeçalho da Secção Rp.'),     'text',
+               {'pt':'Rp.','en':'Rx.','es':'Rp.'}[lang]),
+              (kp ~ 'validity_' ~ lang,     _('Texto de Validade'),            'text',
+               {'pt':'Válido por 30 dias a partir da data de emissão.','en':'Valid for 30 days from issue date.','es':'Válido por 30 días desde la fecha de emisión.'}[lang]),
+              (kp ~ 'sig_' ~ lang,          _('Etiqueta de Assinatura'),       'text',
+               {'pt':'Assinatura e Carimbo','en':'Signature & Stamp','es':'Firma y Sello'}[lang]),
+              (kp ~ 'footer_' ~ lang,       _('Texto do Rodapé'),              'text',
+               {'pt':'Documento gerado pelo sistema','en':'Document generated by the system','es':'Documento generado por el sistema'}[lang]),
+            ] %}
+            {% for fk, fl, ft, fd in rx_fields %}
+            <div class="mb-3">
+              <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ fl }}</label>
+              <input type="{{ ft }}" name="{{ fk }}" class="form-control form-control-sm"
+                     value="{{ settings.get(fk, '') or fd }}" style="font-size:.85rem">
+            </div>
+            {% endfor %}
+            {% endif %}
+
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-end pt-3 border-top" style="border-color:var(--dc-border)!important">
+          <button type="submit" class="btn btn-primary px-5">
+            <i class="bi bi-floppy-fill me-2"></i>{{ _('Guardar Alterações') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+(function () {
+  const picker = document.getElementById('accent-picker');
+  const hex    = document.getElementById('accent-hex');
+  if (picker && hex) {
+    picker.addEventListener('input', () => { hex.value = picker.value; });
+  }
+
+  const savePreviewBtn = document.getElementById('save-preview-btn');
+  if (savePreviewBtn) {
+    savePreviewBtn.addEventListener('click', function () {
+      const form = document.getElementById('pdf-form');
+      const previewUrl = {{ url_for('admin.pdf_template_preview', ptype=ptype) | tojson }};
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
+      fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: new FormData(form),
+        redirect: 'follow',
+      }).then(function (resp) {
+        if (resp.ok || resp.redirected) {
+          window.open(previewUrl, '_blank');
+        }
+      }).catch(function () {
+        window.open(previewUrl, '_blank');
+      }).finally(function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-eye-fill me-1"></i>{{ _("Guardar e Pré-visualizar") }}';
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

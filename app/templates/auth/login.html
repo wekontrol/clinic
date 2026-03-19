@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}" data-dc-theme="{{ session.get('theme', 'dark') }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _('Login') }} — {{ app_settings.app_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/dental.css') }}" rel="stylesheet">
+  <style>
+    [data-dc-theme="dark"] {
+      --dc-primary: {{ app_settings.primary_dark }};
+      --dc-success: {{ app_settings.success_dark }};
+      --dc-danger:  {{ app_settings.danger_dark }};
+      --dc-warning: {{ app_settings.warning_dark }};
+    }
+    [data-dc-theme="light"] {
+      --dc-primary: {{ app_settings.primary_light }};
+      --dc-success: {{ app_settings.success_light }};
+      --dc-danger:  {{ app_settings.danger_light }};
+      --dc-warning: {{ app_settings.warning_light }};
+    }
+  </style>
+</head>
+<body>
+<div class="dc-login-bg">
+  <div class="dc-login-card">
+    <!-- Logo -->
+    <div class="dc-login-logo">
+      <div class="dc-login-icon">
+        {% if app_settings.app_logo %}
+          <img src="{{ url_for('superadmin.logo_file', filename=app_settings.app_logo) }}"
+               alt="{{ app_settings.app_name }}"
+               style="width:42px;height:42px;object-fit:contain;border-radius:8px">
+        {% else %}
+          <i class="bi bi-heart-pulse-fill"></i>
+        {% endif %}
+      </div>
+      <div>
+        <div style="font-size:1.3rem;font-weight:700;color:var(--dc-white)">{{ app_settings.app_name }}</div>
+        <div style="font-size:0.72rem;color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.1em">{{ _('Sistema de Gestão Clínica') }}</div>
+      </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} mb-3">
+        <i class="bi bi-{% if category == 'danger' %}x-circle{% else %}info-circle{% endif %} me-2"></i>{{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <!-- Form -->
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      {{ form.hidden_tag() }}
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.username.label.text }}</label>
+        <div class="input-group">
+          <span class="input-group-text dc-ig">
+            <i class="bi bi-person-fill"></i>
+          </span>
+          {{ form.username(class="form-control", placeholder=_("Introduza o seu utilizador"), autocomplete="username") }}
+        </div>
+        {% if form.username.errors %}
+          <div class="text-danger mt-1" style="font-size:.8rem">{{ form.username.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">{{ form.password.label.text }}</label>
+        <div class="input-group">
+          <span class="input-group-text dc-ig">
+            <i class="bi bi-lock-fill"></i>
+          </span>
+          {{ form.password(class="form-control", placeholder="••••••••", autocomplete="current-password", id="passwordInput") }}
+          <button class="btn dc-ig" type="button" id="togglePwd">
+            <i class="bi bi-eye" id="togglePwdIcon"></i>
+          </button>
+        </div>
+        {% if form.password.errors %}
+          <div class="text-danger mt-1" style="font-size:.8rem">{{ form.password.errors[0] }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-4">
+        <div class="form-check">
+          {{ form.remember_me(class="form-check-input") }}
+          <label class="form-check-label" for="remember_me" style="font-size:.85rem;color:var(--dc-text-muted)">
+            {{ form.remember_me.label.text }}
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 py-2">
+        <i class="bi bi-box-arrow-in-right me-2"></i>{{ form.submit.label.text }}
+      </button>
+    </form>
+
+    <!-- Language switcher -->
+    <div class="d-flex justify-content-center gap-2 mt-4">
+      <a href="{{ url_for('auth.set_lang', lang='pt') }}" class="lang-btn {% if get_locale() == 'pt' %}active{% endif %}">PT</a>
+      <a href="{{ url_for('auth.set_lang', lang='en') }}" class="lang-btn {% if get_locale() == 'en' %}active{% endif %}">EN</a>
+      <a href="{{ url_for('auth.set_lang', lang='es') }}" class="lang-btn {% if get_locale() == 'es' %}active{% endif %}">ES</a>
+    </div>
+
+    <div class="text-center mt-3" style="font-size:.72rem;color:var(--dc-text-muted)">
+      <i class="bi bi-shield-lock-fill me-1" style="color:var(--dc-success)"></i>
+      {{ _('Ligação segura — Dados protegidos') }}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Sync Bootstrap theme
+  (function() {
+    const theme = document.documentElement.getAttribute('data-dc-theme') || 'dark';
+    document.documentElement.setAttribute('data-bs-theme', theme);
+  })();
+
+  document.getElementById('togglePwd').addEventListener('click', function() {
+    const input = document.getElementById('passwordInput');
+    const icon = document.getElementById('togglePwdIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
+  });
+</script>
+</body>
+</html>

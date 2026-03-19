@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Utilizadores') }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-gear me-2" style="color:var(--dc-primary)"></i>{{ _('Gestão de Utilizadores') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.usr-cards { display: none; }
+@media (max-width: 767px) {
+  .usr-cards      { display: flex; flex-direction: column; gap: .6rem; }
+  .usr-table-wrap { display: none; }
+}
+.usr-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.usr-card:active { background: var(--dc-surface); }
+.usr-card-body   { flex: 1; min-width: 0; }
+.usr-card-name   { font-size: .93rem; font-weight: 600; color: var(--dc-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.usr-card-user   { font-family: monospace; font-size: .72rem; color: var(--dc-primary); }
+.usr-card-meta   { font-size: .75rem; color: var(--dc-text-muted); margin-top: .3rem; display: flex; flex-wrap: wrap; gap: .3rem .6rem; align-items: center; }
+.usr-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dc-page-header">
+  <div>
+    {% if current_user.role in ['dentist', 'reception'] %}
+    <h1>{{ _('Pacientes') }}</h1>
+    <p>{{ _('Gerir contas de acesso dos pacientes') }}</p>
+    {% else %}
+    <h1>{{ _('Utilizadores') }}</h1>
+    <p>{{ _('Gerir contas e permissões do sistema') }}</p>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus-fill me-1"></i>
+    {% if current_user.role in ['dentist', 'reception'] %}{{ _('Novo Paciente') }}{% else %}{{ _('Novo Utilizador') }}{% endif %}
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="dc-card mb-3">
+  <form method="get" action="{{ url_for('admin.users') }}" id="filterForm">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-sm-6 col-md-4">
+        <label class="form-label form-label-sm mb-1" style="color:var(--dc-text-muted)">{{ _('Pesquisar') }}</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" value="{{ request.args.get('q', '') }}"
+                 class="form-control" placeholder="{{ _('Nome…') }}">
+        </div>
+      </div>
+      {% if current_user.role in ['superadmin', 'clinical_director'] %}
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label form-label-sm mb-1" style="color:var(--dc-text-muted)">{{ _('Perfil') }}</label>
+        <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{{ _('Todos') }}</option>
+          <option value="superadmin"        {% if filter_role == 'superadmin' %}selected{% endif %}>Superadmin</option>
+          <option value="clinical_director" {% if filter_role == 'clinical_director' %}selected{% endif %}>{{ _('Dir. Clínico') }}</option>
+          <option value="dentist"           {% if filter_role == 'dentist' %}selected{% endif %}>{{ _('Dentista') }}</option>
+          <option value="reception"         {% if filter_role == 'reception' %}selected{% endif %}>{{ _('Recepção') }}</option>
+          <option value="patient"           {% if filter_role == 'patient' %}selected{% endif %}>{{ _('Paciente') }}</option>
+        </select>
+      </div>
+      {% endif %}
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label form-label-sm mb-1" style="color:var(--dc-text-muted)">{{ _('Estado') }}</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">{{ _('Todos') }}</option>
+          <option value="active"   {% if filter_status == 'active' %}selected{% endif %}>{{ _('Ativo') }}</option>
+          <option value="inactive" {% if filter_status == 'inactive' %}selected{% endif %}>{{ _('Inativo') }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-sm-3 col-md-2">
+        <label class="form-label form-label-sm mb-1" style="color:var(--dc-text-muted)">{{ _('Desde') }}</label>
+        <input type="date" name="since" value="{{ filter_since }}"
+               class="form-control form-control-sm" onchange="this.form.submit()">
+      </div>
+      <div class="col-6 col-sm-3 col-md-2 d-flex gap-1">
+        <button type="submit" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-funnel-fill"></i>
+        </button>
+        {% if request.args.get('q') or filter_role or filter_since or filter_status %}
+        <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-secondary" title="{{ _('Limpar filtros') }}">
+          <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+
+{% if users.items %}
+
+<!-- ══ MOBILE CARDS ══ -->
+<div class="usr-cards">
+  {% for u in users.items %}
+  <div class="usr-card" onclick="location.href='{{ url_for('admin.edit_user', id=u.id) }}'">
+    <!-- Avatar -->
+    <div class="dc-user-avatar" style="width:40px;height:40px;font-size:.78rem;flex-shrink:0">
+      {{ u.full_name[:2].upper() }}
+    </div>
+
+    <!-- Body -->
+    <div class="usr-card-body">
+      <div class="usr-card-name">{{ u.full_name }}</div>
+      <div class="usr-card-user">@{{ u.username }}</div>
+      <div class="usr-card-meta">
+        <span class="badge bg-{{ u.role_badge_class() }}" style="font-size:.65rem">{{ u.role_display() }}</span>
+        <span class="badge bg-{% if u.is_active %}success{% else %}secondary{% endif %}" style="font-size:.65rem">
+          {{ _('Ativo') if u.is_active else _('Inativo') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="usr-card-actions">
+      <a href="{{ url_for('admin.edit_user', id=u.id) }}"
+         class="btn btn-sm btn-primary py-1 px-2"
+         onclick="event.stopPropagation()" title="{{ _('Editar') }}">
+        <i class="bi bi-pencil-fill" style="font-size:.75rem"></i>
+      </a>
+      {% if current_user.role in ['superadmin', 'clinical_director'] and u.id != current_user.id %}
+        {% if not (current_user.role == 'clinical_director' and u.role == 'superadmin') %}
+        <button type="button"
+                class="btn btn-sm btn-outline-warning py-1 px-2"
+                onclick="event.stopPropagation()"
+                data-bs-toggle="modal"
+                data-bs-target="#resetPwModal"
+                data-uid="{{ u.id }}"
+                data-uname="{{ u.full_name }}"
+                title="{{ _('Redefinir Senha') }}">
+          <i class="bi bi-key-fill" style="font-size:.75rem"></i>
+        </button>
+        {% endif %}
+      {% endif %}
+      {% if current_user.role == 'superadmin' and u.id != current_user.id and u.role != 'superadmin' %}
+      <button type="button"
+              class="btn btn-sm btn-outline-danger py-1 px-2"
+              onclick="event.stopPropagation()"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteUserModal"
+              data-uid="{{ u.id }}"
+              data-uname="{{ u.full_name }}"
+              data-urole="{{ u.role }}"
+              data-haspatients="{{ 'true' if u.role in ['dentist','clinical_director'] else 'false' }}"
+              title="{{ _('Eliminar') }}">
+        <i class="bi bi-trash3-fill" style="font-size:.75rem"></i>
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ══ DESKTOP TABLE ══ -->
+<div class="dc-card usr-table-wrap">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>{{ _('Utilizador') }}</th>
+          <th>{{ _('Nome') }}</th>
+          <th class="d-none d-md-table-cell">{{ _('Email') }}</th>
+          <th>{{ _('Perfil') }}</th>
+          <th>{{ _('Estado') }}</th>
+          <th class="d-none d-md-table-cell">{{ _('Desde') }}</th>
+          <th>{{ _('Ações') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users.items %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="dc-user-avatar" style="width:32px;height:32px;font-size:.7rem">
+                {{ u.full_name[:2].upper() }}
+              </div>
+              <code style="color:var(--dc-primary);font-size:.8rem">{{ u.username }}</code>
+            </div>
+          </td>
+          <td style="font-size:.9rem;color:var(--dc-white)">{{ u.full_name }}</td>
+          <td class="d-none d-md-table-cell" style="font-size:.85rem;color:var(--dc-text-muted)">{{ u.email }}</td>
+          <td>
+            <span class="badge bg-{{ u.role_badge_class() }}">{{ u.role_display() }}</span>
+          </td>
+          <td>
+            <span class="badge bg-{% if u.is_active %}success{% else %}secondary{% endif %}">
+              {{ _('Ativo') if u.is_active else _('Inativo') }}
+            </span>
+          </td>
+          <td class="d-none d-md-table-cell" style="font-size:.8rem;color:var(--dc-text-muted)">
+            {{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}
+          </td>
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              <a href="{{ url_for('admin.edit_user', id=u.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="{{ _('Editar') }}">
+                <i class="bi bi-pencil-fill"></i>
+              </a>
+              {% if current_user.role in ['superadmin', 'clinical_director'] and u.id != current_user.id %}
+                {% if not (current_user.role == 'clinical_director' and u.role == 'superadmin') %}
+                <button type="button"
+                        class="btn btn-sm btn-outline-warning"
+                        title="{{ _('Redefinir Senha') }}"
+                        data-bs-toggle="modal"
+                        data-bs-target="#resetPwModal"
+                        data-uid="{{ u.id }}"
+                        data-uname="{{ u.full_name }}">
+                  <i class="bi bi-key-fill"></i>
+                </button>
+                {% endif %}
+              {% endif %}
+              {% if current_user.role == 'superadmin' and u.id != current_user.id and u.role != 'superadmin' %}
+              <button type="button"
+                      class="btn btn-sm btn-outline-danger"
+                      title="{{ _('Eliminar Utilizador') }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#deleteUserModal"
+                      data-uid="{{ u.id }}"
+                      data-uname="{{ u.full_name }}"
+                      data-urole="{{ u.role }}"
+                      data-haspatients="{{ 'true' if u.role in ['dentist','clinical_director'] else 'false' }}">
+                <i class="bi bi-trash3-fill"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5" style="color:var(--dc-text-muted)">
+            {{ _('Nenhum utilizador encontrado') }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if users.pages > 1 %}
+  <div class="d-flex justify-content-center mt-3">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% for page in users.iter_pages() %}
+          {% if page %}
+            <li class="page-item {% if page == users.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin.users', page=page,
+                   q=request.args.get('q',''), role=filter_role,
+                   since=filter_since, status=filter_status) }}">{{ page }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Mobile pagination -->
+{% if users.pages > 1 %}
+<div class="d-flex justify-content-center mt-3 d-md-none">
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      {% for page in users.iter_pages() %}
+        {% if page %}
+          <li class="page-item {% if page == users.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users', page=page,
+                 q=request.args.get('q',''), role=filter_role,
+                 since=filter_since, status=filter_status) }}">{{ page }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+
+{% else %}
+<div class="dc-card text-center py-5" style="color:var(--dc-text-muted)">
+  {{ _('Nenhum utilizador encontrado') }}
+</div>
+{% endif %}
+
+{# ── Reset Password Modal ── #}
+{% if current_user.role in ['superadmin', 'clinical_director'] %}
+<div class="modal fade" id="resetPwModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content" style="background:var(--dc-card);border:1px solid var(--dc-border)">
+      <div class="modal-header" style="border-color:var(--dc-border)">
+        <h6 class="modal-title"><i class="bi bi-key-fill me-2 text-warning"></i>{{ _('Redefinir Senha') }}</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="font-size:.9rem;color:var(--dc-text)">
+        {{ _('Redefinir a senha de') }} <strong id="resetPwName"></strong>?
+        <div class="mt-2 p-2 rounded" style="background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);font-size:.82rem;color:var(--dc-text-muted)">
+          <i class="bi bi-info-circle me-1"></i>
+          {{ _('A nova senha será:') }} <code>changeme123</code>
+        </div>
+      </div>
+      <div class="modal-footer" style="border-color:var(--dc-border)">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancelar') }}</button>
+        <form id="resetPwForm" method="post" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-warning">
+            <i class="bi bi-key-fill me-1"></i>{{ _('Redefinir') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('resetPwModal').addEventListener('show.bs.modal', function(e) {
+  var btn = e.relatedTarget;
+  document.getElementById('resetPwName').textContent = btn.getAttribute('data-uname');
+  document.getElementById('resetPwForm').action =
+    '/admin/users/' + btn.getAttribute('data-uid') + '/reset-password';
+});
+</script>
+{% endif %}
+
+{# ── Delete User Modal (superadmin only) ── #}
+{% if current_user.role == 'superadmin' %}
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+    <div class="modal-content" style="background:var(--dc-card);border:1px solid var(--dc-border)">
+      <div class="modal-header" style="border-color:var(--dc-border)">
+        <h6 class="modal-title text-danger">
+          <i class="bi bi-trash3-fill me-2"></i>{{ _('Eliminar Utilizador') }}
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="font-size:.9rem;color:var(--dc-text)">
+        <p>{{ _('Tem a certeza que deseja eliminar o utilizador') }}
+          <strong id="delUserName" class="text-danger"></strong>?</p>
+
+        <div id="delPatientWarning" class="d-none mt-2 p-3 rounded"
+             style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);font-size:.82rem;color:var(--dc-text-muted)">
+          <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>
+          {{ _('Este utilizador é médico. Os seus pacientes e consultas futuras serão transferidos automaticamente para o Diretor Clínico.') }}
+        </div>
+
+        <div class="mt-3 p-2 rounded"
+             style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);font-size:.82rem;color:var(--dc-text-muted)">
+          <i class="bi bi-info-circle me-1"></i>
+          {{ _('Esta acção é irreversível.') }}
+        </div>
+      </div>
+      <div class="modal-footer" style="border-color:var(--dc-border)">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+          {{ _('Cancelar') }}
+        </button>
+        <form id="delUserForm" method="post" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">
+            <i class="bi bi-trash3-fill me-1"></i>{{ _('Eliminar Definitivamente') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('deleteUserModal').addEventListener('show.bs.modal', function(e) {
+  var btn = e.relatedTarget;
+  var uid       = btn.getAttribute('data-uid');
+  var uname     = btn.getAttribute('data-uname');
+  var hasPatients = btn.getAttribute('data-haspatients') === 'true';
+
+  document.getElementById('delUserName').textContent = uname;
+  document.getElementById('delUserForm').action = '/admin/users/' + uid + '/delete';
+
+  var warn = document.getElementById('delPatientWarning');
+  if (hasPatients) {
+    warn.classList.remove('d-none');
+  } else {
+    warn.classList.add('d-none');
+  }
+});
+</script>
+{% endif %}
+
+{% endblock %}

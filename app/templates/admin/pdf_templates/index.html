@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Edição de PDF') }}{% endblock %}
+{% block page_title %}<i class="bi bi-file-pdf-fill me-2"></i>{{ _('Editor de Templates PDF') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0" style="color:var(--dc-text)">{{ _('Documentos Clínicos em PDF') }}</h4>
+    <small style="color:var(--dc-text-muted)">
+      {{ _('Personalize o layout, textos e estilo de cada documento antes de o gerar.') }}
+    </small>
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for ptype, meta in pdf_types.items() %}
+  <div class="col-md-4">
+    <div class="dc-card p-4 h-100 d-flex flex-column" style="border-top:3px solid {{ meta.color }}">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center"
+             style="width:44px;height:44px;background:{{ meta.color }}22">
+          <i class="bi {{ meta.icon }}" style="font-size:1.3rem;color:{{ meta.color }}"></i>
+        </div>
+        <div>
+          <div style="font-weight:600;color:var(--dc-text);font-size:.95rem">{{ meta.label }}</div>
+          <div style="font-size:.75rem;color:var(--dc-text-muted)">{{ ptype }}</div>
+        </div>
+      </div>
+
+      <p class="mb-4" style="font-size:.85rem;color:var(--dc-text-muted);flex:1">{{ meta.desc }}</p>
+
+      <div class="d-flex gap-2 mt-auto">
+        <a href="{{ url_for('admin.pdf_template_edit', ptype=ptype) }}"
+           class="btn btn-primary btn-sm flex-fill">
+          <i class="bi bi-pencil-fill me-1"></i>{{ _('Editar') }}
+        </a>
+        <a href="{{ url_for('admin.pdf_template_preview', ptype=ptype) }}"
+           target="_blank" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-eye-fill me-1"></i>{{ _('Pré-visualizar') }}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Info box -->
+<div class="dc-card mt-5 p-4">
+  <div class="d-flex gap-3 align-items-start">
+    <i class="bi bi-info-circle-fill mt-1" style="color:var(--dc-primary);font-size:1.1rem;flex-shrink:0"></i>
+    <div style="font-size:.85rem;color:var(--dc-text-muted)">
+      <strong style="color:var(--dc-text)">{{ _('Como funciona?') }}</strong><br>
+      {{ _('Cada template tem um formulário de edição com três secções: dados da clínica (partilhados por todos os documentos), opções de estilo (cor de acento, logótipo, numeração de páginas), e textos do documento em três idiomas (PT, EN, ES). As alterações ficam guardadas imediatamente e são aplicadas a todos os PDFs gerados a partir daí. Use "Pré-visualizar" para ver o resultado com dados de exemplo antes de guardar.') }}
+    </div>
+  </div>
+</div>
+{% endblock %}

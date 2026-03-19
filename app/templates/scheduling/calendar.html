@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Agenda') }}{% endblock %}
+{% block page_title %}<i class="bi bi-calendar3 me-2"></i>{{ _('Agenda — 2 Salas') }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<style>
+.fc { font-family: inherit; }
+.fc .fc-toolbar-title { font-size: 1.1rem; font-weight: 600; color: var(--dc-white); }
+.fc .fc-button { background: var(--dc-primary); border-color: var(--dc-primary); color: #fff; font-size: .8rem; }
+.fc .fc-button:hover { background: var(--dc-primary-d); border-color: var(--dc-primary-d); }
+.fc .fc-button-active { background: var(--dc-primary-d) !important; }
+.fc-theme-standard .fc-scrollgrid { border-color: var(--dc-border); }
+.fc-theme-standard td, .fc-theme-standard th { border-color: var(--dc-border); }
+.fc .fc-daygrid-day { background: var(--dc-card); }
+.fc .fc-daygrid-day:hover { background: var(--dc-sidebar); }
+.fc .fc-daygrid-day-number { color: var(--dc-text); }
+.fc .fc-col-header-cell-cushion { color: var(--dc-text-muted); font-weight: 600; }
+.fc .fc-event { border-radius: 4px; font-size: .78rem; padding: 1px 4px; cursor: pointer; }
+.fc-timegrid-slot { height: 1.5rem !important; }
+.fc .fc-timegrid-now-indicator-line { border-color: var(--dc-danger); }
+
+/* ── List view dark/light theme override ──────────────────── */
+.fc .fc-list { background: var(--dc-card); border-color: var(--dc-border); }
+.fc .fc-list-table { border-color: var(--dc-border); }
+.fc .fc-list-table td, .fc .fc-list-table th { border-color: var(--dc-border); }
+/* Day header row */
+.fc .fc-list-day th { background: var(--dc-sidebar) !important; border-color: var(--dc-border) !important; }
+.fc .fc-list-day-cushion { background: var(--dc-sidebar) !important; }
+.fc .fc-list-day-text, .fc .fc-list-day-side-text { color: var(--dc-primary) !important; font-weight: 600; }
+/* Event rows */
+.fc .fc-list-event td { background: var(--dc-bg) !important; color: var(--dc-text) !important; border-color: var(--dc-border) !important; }
+.fc .fc-list-event:hover td { background: var(--dc-sidebar) !important; }
+.fc .fc-list-event-title a { color: var(--dc-white) !important; text-decoration: none; }
+.fc .fc-list-event-time { color: var(--dc-text-muted) !important; font-size: .8rem; white-space: nowrap; }
+/* Empty state */
+.fc .fc-list-empty { background: var(--dc-card); color: var(--dc-text-muted); }
+.fc .fc-list-empty-cushion { color: var(--dc-text-muted); }
+
+/* Legend */
+.room-legend { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:.75rem; }
+.room-legend-item { display:flex; align-items:center; gap:.4rem; font-size:.82rem; }
+.room-legend-dot { width:12px; height:12px; border-radius:50%; }
+
+/* ── Mobile calendar tweaks ───────────────────────────── */
+@media (max-width: 767px) {
+  /* Smaller toolbar font */
+  .fc .fc-toolbar-title { font-size: .9rem !important; }
+  .fc .fc-button { font-size: .72rem !important; padding: .25rem .45rem !important; }
+  .fc .fc-toolbar { flex-wrap: wrap; gap: .4rem; }
+  /* List view rows — more readable */
+  .fc-list-event td { font-size: .82rem; }
+  .fc-list-day-cushion { font-size: .8rem; }
+  /* Room status cards: stack vertically & shrink */
+  .room-card-mobile { min-width: 100% !important; }
+  /* Hide legend on tiny screens */
+  .room-legend { display: none; }
+  /* Calendar card no horizontal padding */
+  .cal-wrap { padding: .5rem !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Room status bar + actions -->
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <!-- Room Status -->
+  <div class="d-flex gap-3 flex-wrap">
+    {% for room in rooms %}
+    <div class="dc-card dc-card-sm room-card-mobile d-flex align-items-center gap-2" style="min-width:180px">
+      <div class="room-status-dot {{ room.status }}"></div>
+      <div>
+        <div style="font-size:.78rem;color:var(--dc-text-muted)">{{ _('Sala') }} {{ room.number }}</div>
+        <div style="font-weight:600;color:var(--dc-white);font-size:.88rem">{{ room.name }}</div>
+        {% if room.status_note %}
+        <div style="font-size:.7rem;color:var(--dc-text-muted)">{{ room.status_note }}</div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('scheduling.rooms') }}" class="ms-auto btn btn-sm btn-outline-secondary p-1"
+         title="{{ _('Gerir Salas') }}"><i class="bi bi-pencil-fill" style="font-size:.7rem"></i></a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Action buttons -->
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('scheduling.emergency') }}" class="btn btn-danger">
+      <i class="bi bi-exclamation-octagon-fill me-2"></i>{{ _('Urgência') }}
+    </a>
+    <a href="{{ url_for('scheduling.new_appointment') }}" class="btn btn-primary">
+      <i class="bi bi-calendar-plus-fill me-2"></i>{{ _('Nova Consulta') }}
+    </a>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="room-legend mb-2">
+  <div class="room-legend-item">
+    <div class="room-legend-dot" style="background:#14b8a6"></div>
+    <span>{{ _('Sala') }} 1</span>
+  </div>
+  <div class="room-legend-item">
+    <div class="room-legend-dot" style="background:#00d97e"></div>
+    <span>{{ _('Sala') }} 2</span>
+  </div>
+  <div class="room-legend-item">
+    <div class="room-legend-dot" style="background:#f85149"></div>
+    <span>{{ _('Urgência') }}</span>
+  </div>
+</div>
+
+<!-- Calendar -->
+<div class="dc-card cal-wrap" style="padding:1rem">
+  <div id="dental-calendar"></div>
+</div>
+
+<!-- Appointment detail modal -->
+<div class="modal fade" id="apptModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--dc-card);border:1px solid var(--dc-border)">
+      <div class="modal-header" style="border-color:var(--dc-border)">
+        <h5 class="modal-title" style="color:var(--dc-white)">
+          <i class="bi bi-calendar-event-fill me-2" style="color:var(--dc-primary)"></i>
+          {{ _('Detalhes da Consulta') }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="apptModalBody" style="color:var(--dc-text);font-size:.9rem"></div>
+      </div>
+      <div class="modal-footer flex-wrap gap-1" style="border-color:var(--dc-border)">
+        <!-- Session button: shown/hidden by JS based on role + session state -->
+        <form id="apptStartSessionForm" method="POST" style="display:none">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="bi bi-clipboard2-pulse-fill me-1"></i>{{ _('Iniciar Sessão') }}
+          </button>
+        </form>
+        <a id="apptOpenSessionBtn" href="#" class="btn btn-outline-success btn-sm" style="display:none">
+          <i class="bi bi-clipboard2-check-fill me-1"></i>{{ _('Abrir Sessão') }}
+        </a>
+        <a id="apptEditBtn" href="#" class="btn btn-primary btn-sm">
+          <i class="bi bi-pencil-fill me-1"></i>{{ _('Editar') }}
+        </a>
+        <form id="apptDeleteForm" method="POST" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm"
+                  onclick="return confirm('{{ _('Cancelar esta consulta?') }}')">
+            <i class="bi bi-trash-fill me-1"></i>{{ _('Cancelar') }}
+          </button>
+        </form>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+          {{ _('Fechar') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Quick-Add Appointment Modal -->
+<div class="modal fade" id="quickAddModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--dc-card);border:1px solid var(--dc-border)">
+      <div class="modal-header" style="border-color:var(--dc-border)">
+        <h5 class="modal-title" style="color:var(--dc-white)">
+          <i class="bi bi-calendar-plus-fill me-2" style="color:var(--dc-success)"></i>
+          {{ _('Nova Consulta') }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="quickAddForm" method="POST" action="{{ url_for('scheduling.new_appointment') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">{{ _('Paciente') }} <span class="text-danger">*</span></label>
+            <select name="patient_id" class="form-select" id="qaPatient" required>
+              <option value="">---</option>
+              {% for p in patients %}
+              <option value="{{ p.id }}">{{ p.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _('Dentista') }} <span class="text-danger">*</span></label>
+            <select name="dentist_id" class="form-select" id="qaDentist" required>
+              <option value="">---</option>
+              {% for d in dentists %}
+              <option value="{{ d.id }}">{{ d.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _('Sala') }}</label>
+            <select name="room_id" class="form-select">
+              <option value="0">---</option>
+              {% for room in rooms %}
+              <option value="{{ room.id }}">{{ _('Sala') }} {{ room.number }} — {{ room.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">{{ _('Início') }} <span class="text-danger">*</span></label>
+              <input type="datetime-local" name="start_time" id="qaStart" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">{{ _('Fim') }}</label>
+              <input type="datetime-local" name="end_time" id="qaEnd" class="form-control">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">{{ _('Notas') }}</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mt-2 form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="is_emergency" value="true" id="qaEmergency">
+            <label class="form-check-label text-danger" for="qaEmergency">{{ _('Urgência') }}</label>
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:var(--dc-border)">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-check-circle-fill me-1"></i>{{ _('Guardar') }}
+          </button>
+          <a id="qaFullFormLink" href="{{ url_for('scheduling.new_appointment') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-up-right-square me-1"></i>{{ _('Formulário Completo') }}
+          </a>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ _('Cancelar') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var calendarEl   = document.getElementById('dental-calendar');
+    var apptModal    = new bootstrap.Modal(document.getElementById('apptModal'));
+    var quickAddModal = new bootstrap.Modal(document.getElementById('quickAddModal'));
+
+    /* ── helpers ────────────────────────────────────────────────── */
+    function fmtDatetime(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        return d.toLocaleDateString('{{ get_locale() }}', {day:'2-digit',month:'2-digit',year:'numeric'})
+          + ' ' + d.toLocaleTimeString('{{ get_locale() }}', {hour:'2-digit',minute:'2-digit'});
+      } catch(e) { return iso.replace('T',' ').substring(0,16); }
+    }
+
+    function makeRow(label, value) {
+      var d = document.createElement('div');
+      d.className = 'mb-2 d-flex gap-2 align-items-start';
+      d.style.fontSize = '.875rem';
+      var s = document.createElement('strong');
+      s.textContent = label + ':';
+      s.style.minWidth = '80px';
+      s.style.color = 'var(--dc-text-muted)';
+      s.style.fontWeight = '500';
+      var v = document.createElement('span');
+      v.textContent = value;
+      v.style.color = 'var(--dc-white)';
+      d.appendChild(s);
+      d.appendChild(v);
+      return d;
+    }
+
+    var STATUS_LABELS = {
+      'scheduled':   '{{ _("Agendada") }}',
+      'in_progress': '{{ _("Em Progresso") }}',
+      'completed':   '{{ _("Concluída") }}',
+      'cancelled':   '{{ _("Cancelada") }}',
+      'confirmed':   '{{ _("Confirmada") }}'
+    };
+    var STATUS_COLORS = {
+      'scheduled':   'secondary',
+      'in_progress': 'primary',
+      'completed':   'success',
+      'cancelled':   'danger',
+      'confirmed':   'info'
+    };
+
+    /* ── scroll helpers ─────────────────────────────────────────── */
+    function currentScrollTime() {
+      var now = new Date();
+      var h = String(now.getHours()).padStart(2,'0');
+      var m = String(now.getMinutes()).padStart(2,'0');
+      return h + ':' + m + ':00';
+    }
+
+    /* ── Responsive view selection ──────────────────────────────── */
+    var isMobile = window.innerWidth < 768;
+
+    /* ── FullCalendar init ──────────────────────────────────────── */
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: isMobile ? 'listWeek' : 'timeGridWeek',
+      timeZone:    'local',
+      locale:      '{{ get_locale() }}',
+      headerToolbar: isMobile ? {
+        left:   'prev,next',
+        center: 'title',
+        right:  'listWeek,timeGridDay'
+      } : {
+        left:   'prev,next today',
+        center: 'title',
+        right:  'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+      },
+      buttonText: {
+        today:    '{{ _("Hoje") }}',
+        month:    '{{ _("Mês") }}',
+        week:     '{{ _("Semana") }}',
+        day:      '{{ _("Dia") }}',
+        list:     '{{ _("Lista") }}'
+      },
+      slotMinTime:      '00:00:00',
+      slotMaxTime:      '24:00:00',
+      scrollTime:       currentScrollTime(),
+      allDaySlot:       false,
+      nowIndicator:     true,
+      height:           isMobile ? 'auto' : 680,
+      slotDuration:     '00:30:00',
+      slotLabelInterval:'01:00:00',
+      eventMaxStack:    3,
+      selectable:       true,
+
+      /* ── event source ─────────────────────────────────────────── */
+      eventSources: [{
+        url:    '{{ url_for("scheduling.appointments_api") }}',
+        method: 'GET',
+        failure: function () {
+          console.warn('[Calendar] Failed to load appointments from API');
+        }
+      }],
+
+      /* ── event rendering ─────────────────────────────────────── */
+      eventDidMount: function(info) {
+        if (info.event.extendedProps.is_emergency) {
+          info.el.style.boxShadow = '0 0 0 2px #f85149';
+        }
+        /* tooltip via Bootstrap title */
+        var ep = info.event.extendedProps;
+        info.el.title = [
+          ep.patient,
+          ep.dentist ? ('Dr. ' + ep.dentist) : '',
+          ep.room || ''
+        ].filter(Boolean).join('\n');
+      },
+
+      /* ── click on empty slot → quick-add ───────────────────────── */
+      dateClick: function(info) {
+        /* With timeZone:'local', info.dateStr is already in local time */
+        var startStr = info.dateStr.substring(0, 16); /* YYYY-MM-DDTHH:MM */
+        /* Build end time (+30 min) as local datetime string */
+        function _pad(n) { return String(n).padStart(2, '0'); }
+        var end = new Date(info.date.getTime() + 30 * 60000);
+        var endStr = end.getFullYear() + '-' + _pad(end.getMonth()+1) + '-' + _pad(end.getDate())
+                   + 'T' + _pad(end.getHours()) + ':' + _pad(end.getMinutes());
+        document.getElementById('qaStart').value = startStr;
+        document.getElementById('qaEnd').value   = endStr;
+        document.getElementById('qaFullFormLink').href =
+          '{{ url_for("scheduling.new_appointment") }}?start=' + encodeURIComponent(info.dateStr);
+        quickAddModal.show();
+      },
+
+      /* ── click on event → detail modal ───────────────────────── */
+      eventClick: function(info) {
+        var apptId = info.event.id;
+        var detailUrl = '{{ url_for("scheduling.appointment_detail", appt_id=0) }}'.replace('/0/detail', '/' + apptId + '/detail');
+        fetch(detailUrl, { credentials: 'same-origin' })
+          .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function(data) {
+            var body = document.getElementById('apptModalBody');
+            body.innerHTML = '';
+
+            /* Emergency badge */
+            if (data.is_emergency) {
+              var badge = document.createElement('div');
+              badge.className = 'badge bg-danger mb-3 d-block';
+              badge.style.fontSize = '.78rem';
+              badge.textContent = '⚠ {{ _("URGÊNCIA") }}';
+              body.appendChild(badge);
+            }
+
+            /* Status badge */
+            var statusLabel = STATUS_LABELS[data.status] || data.status;
+            var statusColor = STATUS_COLORS[data.status] || 'secondary';
+            var sb = document.createElement('div');
+            sb.className = 'mb-3';
+            var sbBadge = document.createElement('span');
+            sbBadge.className = 'badge bg-' + statusColor;
+            sbBadge.style.fontSize = '.72rem';
+            sbBadge.textContent = statusLabel;
+            sb.appendChild(sbBadge);
+            body.appendChild(sb);
+
+            body.appendChild(makeRow('{{ _("Paciente") }}', data.patient || '—'));
+            body.appendChild(makeRow('{{ _("Dentista") }}', data.dentist || '—'));
+            body.appendChild(makeRow('{{ _("Sala") }}',    data.room    || '—'));
+            body.appendChild(makeRow('{{ _("Início") }}',  fmtDatetime(data.start)));
+            body.appendChild(makeRow('{{ _("Fim") }}',     fmtDatetime(data.end)));
+            if (data.notes) {
+              var noteWrap = document.createElement('div');
+              noteWrap.className = 'mt-2 p-2 rounded';
+              noteWrap.style.background = 'rgba(255,255,255,.05)';
+              noteWrap.style.fontSize   = '.82rem';
+              noteWrap.style.color      = 'var(--dc-text-muted)';
+              noteWrap.textContent = data.notes;
+              body.appendChild(noteWrap);
+            }
+
+            /* Buttons */
+            document.getElementById('apptEditBtn').href = data.edit_url;
+            document.getElementById('apptDeleteForm').action = data.delete_url;
+
+            var startForm = document.getElementById('apptStartSessionForm');
+            var openBtn   = document.getElementById('apptOpenSessionBtn');
+            startForm.style.display = 'none';
+            openBtn.style.display   = 'none';
+            if (data.existing_session_url) {
+              openBtn.href = data.existing_session_url;
+              openBtn.style.display = '';
+            } else if (data.start_session_url) {
+              startForm.action = data.start_session_url;
+              startForm.style.display = '';
+            }
+
+            apptModal.show();
+          })
+          .catch(function(err) {
+            console.error('[Calendar] eventClick detail error:', err);
+          });
+      }
+    });
+
+    calendar.render();
+  });
+})();
+</script>
+{% endblock %}

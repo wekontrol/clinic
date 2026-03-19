@@ -1,0 +1,335 @@
+{#
+  Interactive SVG Odontogram — 32-tooth adult chart (FDI notation).
+  - Anatomical tooth shapes (root taper, crown rounded)
+  - 5-surface division lines inside each crown
+  - Floating contextual popup (replaces Bootstrap modal)
+  - Tooth names in Portuguese
+  - Notes per tooth
+  - is_readonly=True for view-only mode
+#}
+{% set is_readonly = is_readonly if is_readonly is defined else False %}
+
+{% if not is_readonly %}
+<style>
+/* ── Tooth SVG interactive states ─────────────────────── */
+.odo-interactive { cursor: pointer; outline: none; }
+.odo-interactive:hover .odo-tooth-shape {
+  stroke: var(--dc-primary);
+  stroke-width: 2;
+  filter: brightness(1.15);
+}
+.odo-interactive.odo-active .odo-tooth-shape {
+  stroke: var(--dc-primary);
+  stroke-width: 2.5;
+  filter: brightness(1.2);
+}
+
+/* ── Floating popup ───────────────────────────────────── */
+.odo-popup {
+  position: fixed;
+  z-index: 2000;
+  width: 228px;
+  background: var(--dc-card, #1e1e1e);
+  border: 1px solid var(--dc-primary);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.65);
+  overflow: hidden;
+  animation: odo-in .15s ease;
+}
+@keyframes odo-in {
+  from { opacity:0; transform:scale(.93) translateY(-5px); }
+  to   { opacity:1; transform:scale(1)   translateY(0); }
+}
+.odo-popup-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: .6rem .85rem .5rem;
+  border-bottom: 1px solid var(--dc-border);
+  background: rgba(74,158,255,.07);
+}
+.odo-popup-tooth-num  { font-size: .95rem; font-weight: 700; color: var(--dc-primary); }
+.odo-popup-tooth-name { font-size: .68rem; color: var(--dc-text-muted); margin-top: .1rem; }
+.odo-popup-x {
+  background: none; border: none; cursor: pointer;
+  color: var(--dc-text-muted); font-size: 1.1rem; line-height: 1;
+  padding: 0 .1rem; transition: color .15s;
+}
+.odo-popup-x:hover { color: var(--dc-danger); }
+
+.odo-popup-body { padding: .6rem .85rem .45rem; }
+
+/* Current finding chip */
+.odo-current-chip {
+  display: none;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .55rem;
+  background: rgba(255,255,255,.05);
+  border-radius: 6px;
+  margin-bottom: .55rem;
+  font-size: .75rem;
+  color: var(--dc-text);
+}
+.odo-current-chip.show { display: flex; }
+.odo-current-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.odo-chip-clear {
+  margin-left: auto; background: none; border: none;
+  cursor: pointer; color: var(--dc-text-muted); font-size: .85rem;
+  padding: 0; line-height: 1;
+}
+.odo-chip-clear:hover { color: var(--dc-danger); }
+
+/* 2-col finding grid */
+.odo-finding-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .28rem;
+  margin-bottom: .55rem;
+}
+.odo-fbtn {
+  display: flex; align-items: center; gap: .35rem;
+  padding: .3rem .45rem;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--dc-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  color: var(--dc-text); font-size: .7rem;
+  cursor: pointer; text-align: left; transition: background .12s;
+}
+.odo-fbtn:hover { background: rgba(255,255,255,.09); }
+.odo-fbtn.active { background: rgba(255,255,255,.14); border-color: var(--dc-primary); }
+.odo-fdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Notes textarea */
+.odo-notes {
+  width: 100%; resize: none;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--dc-border);
+  border-radius: 6px;
+  color: var(--dc-text); font-size: .72rem;
+  padding: .38rem .5rem; font-family: inherit;
+  transition: border-color .15s;
+}
+.odo-notes:focus { outline: none; border-color: var(--dc-primary); }
+.odo-notes::placeholder { color: var(--dc-text-muted); }
+
+.odo-popup-foot {
+  padding: .4rem .85rem .55rem;
+  border-top: 1px solid var(--dc-border);
+  display: flex; justify-content: flex-end; gap: .4rem;
+}
+</style>
+{% endif %}
+
+<div id="odontogram-container" style="overflow-x:auto;user-select:none">
+
+<svg id="odo-svg" viewBox="0 0 640 170"
+     xmlns="http://www.w3.org/2000/svg"
+     style="width:100%;max-width:900px;display:block;margin:0 auto">
+
+  <!-- ─── UPPER JAW — root up, crown down ──────────────────── -->
+  {% set upper_seq = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28] %}
+  {% for num in upper_seq %}
+  {% set col = loop.index0 %}
+  {% set bx = 8 + col * 39 %}
+  {% set by = 20 %}
+
+  <g class="odo-tooth{% if not is_readonly %} odo-interactive{% endif %}"
+     data-tooth="{{ num }}" id="odo-g-{{ num }}"
+     {% if not is_readonly %}tabindex="0"
+     onclick="openToothModal({{ num }})"
+     onkeydown="if(event.key==='Enter'||event.key===' ')openToothModal({{ num }})"{% endif %}>
+
+    <!-- Outer tooth shape -->
+    <path class="odo-tooth-shape" id="odo-path-{{ num }}"
+      d="M {{ bx+9 }},{{ by }}
+         L {{ bx+21 }},{{ by }}
+         C {{ bx+28 }},{{ by }} {{ bx+29 }},{{ by+13 }} {{ bx+29 }},{{ by+15 }}
+         L {{ bx+29 }},{{ by+44 }}
+         Q {{ bx+29 }},{{ by+52 }} {{ bx+15 }},{{ by+52 }}
+         Q {{ bx+1 }},{{ by+52 }} {{ bx+1 }},{{ by+44 }}
+         L {{ bx+1 }},{{ by+15 }}
+         C {{ bx+1 }},{{ by+13 }} {{ bx+2 }},{{ by }} {{ bx+9 }},{{ by }} Z"
+      fill="var(--odo-tooth-bg,#1e2740)"
+      stroke="var(--odo-border,#3a4460)" stroke-width="1.5"/>
+
+    <!-- Finding overlay (same path, colored when set) -->
+    <path id="odo-finding-{{ num }}"
+      d="M {{ bx+9 }},{{ by }}
+         L {{ bx+21 }},{{ by }}
+         C {{ bx+28 }},{{ by }} {{ bx+29 }},{{ by+13 }} {{ bx+29 }},{{ by+15 }}
+         L {{ bx+29 }},{{ by+44 }}
+         Q {{ bx+29 }},{{ by+52 }} {{ bx+15 }},{{ by+52 }}
+         Q {{ bx+1 }},{{ by+52 }} {{ bx+1 }},{{ by+44 }}
+         L {{ bx+1 }},{{ by+15 }}
+         C {{ bx+1 }},{{ by+13 }} {{ bx+2 }},{{ by }} {{ bx+9 }},{{ by }} Z"
+      fill="transparent" opacity="0.55" pointer-events="none"/>
+
+    <!-- 5-surface dividers (decorative cross inside crown) -->
+    <line x1="{{ bx+15 }}" y1="{{ by+17 }}" x2="{{ bx+15 }}" y2="{{ by+48 }}"
+          stroke="var(--odo-border,#3a4460)" stroke-width="0.6" opacity="0.5" pointer-events="none"/>
+    <line x1="{{ bx+4 }}"  y1="{{ by+33 }}" x2="{{ bx+26 }}" y2="{{ by+33 }}"
+          stroke="var(--odo-border,#3a4460)" stroke-width="0.6" opacity="0.5" pointer-events="none"/>
+
+    <!-- Tooth number (below crown) -->
+    <text x="{{ bx+15 }}" y="{{ by+64 }}"
+          text-anchor="middle" font-size="7"
+          fill="var(--odo-label,#8899bb)" font-family="Inter,sans-serif"
+          pointer-events="none">{{ num }}</text>
+  </g>
+  {% endfor %}
+
+  <!-- Jaw separator -->
+  <line x1="6" y1="90" x2="634" y2="90"
+        stroke="var(--odo-border,#3a4460)" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="320" y="88" text-anchor="middle" font-size="6.5"
+        fill="var(--odo-label,#8899bb)" font-family="Inter,sans-serif">
+    ↑ SUPERIOR · INFERIOR ↓
+  </text>
+
+  <!-- ─── LOWER JAW — crown up, root down ──────────────────── -->
+  {% set lower_seq = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38] %}
+  {% for num in lower_seq %}
+  {% set col = loop.index0 %}
+  {% set bx = 8 + col * 39 %}
+  {% set by = 108 %}
+
+  <g class="odo-tooth{% if not is_readonly %} odo-interactive{% endif %}"
+     data-tooth="{{ num }}" id="odo-g-{{ num }}"
+     {% if not is_readonly %}tabindex="0"
+     onclick="openToothModal({{ num }})"
+     onkeydown="if(event.key==='Enter'||event.key===' ')openToothModal({{ num }})"{% endif %}>
+
+    <!-- Outer tooth shape (crown up, root down) -->
+    <path class="odo-tooth-shape" id="odo-path-{{ num }}"
+      d="M {{ bx+2 }},{{ by+8 }}
+         Q {{ bx+2 }},{{ by }}  {{ bx+15 }},{{ by }}
+         Q {{ bx+28 }},{{ by }} {{ bx+28 }},{{ by+8 }}
+         L {{ bx+28 }},{{ by+37 }}
+         C {{ bx+28 }},{{ by+50 }} {{ bx+22 }},{{ by+52 }} {{ bx+21 }},{{ by+52 }}
+         L {{ bx+9 }},{{ by+52 }}
+         C {{ bx+8 }},{{ by+52 }} {{ bx+2 }},{{ by+50 }} {{ bx+2 }},{{ by+37 }} Z"
+      fill="var(--odo-tooth-bg,#1e2740)"
+      stroke="var(--odo-border,#3a4460)" stroke-width="1.5"/>
+
+    <!-- Finding overlay -->
+    <path id="odo-finding-{{ num }}"
+      d="M {{ bx+2 }},{{ by+8 }}
+         Q {{ bx+2 }},{{ by }}  {{ bx+15 }},{{ by }}
+         Q {{ bx+28 }},{{ by }} {{ bx+28 }},{{ by+8 }}
+         L {{ bx+28 }},{{ by+37 }}
+         C {{ bx+28 }},{{ by+50 }} {{ bx+22 }},{{ by+52 }} {{ bx+21 }},{{ by+52 }}
+         L {{ bx+9 }},{{ by+52 }}
+         C {{ bx+8 }},{{ by+52 }} {{ bx+2 }},{{ by+50 }} {{ bx+2 }},{{ by+37 }} Z"
+      fill="transparent" opacity="0.55" pointer-events="none"/>
+
+    <!-- 5-surface dividers -->
+    <line x1="{{ bx+15 }}" y1="{{ by+4 }}"  x2="{{ bx+15 }}" y2="{{ by+35 }}"
+          stroke="var(--odo-border,#3a4460)" stroke-width="0.6" opacity="0.5" pointer-events="none"/>
+    <line x1="{{ bx+4 }}"  y1="{{ by+19 }}" x2="{{ bx+26 }}" y2="{{ by+19 }}"
+          stroke="var(--odo-border,#3a4460)" stroke-width="0.6" opacity="0.5" pointer-events="none"/>
+
+    <!-- Tooth number (above crown) -->
+    <text x="{{ bx+15 }}" y="{{ by-4 }}"
+          text-anchor="middle" font-size="7"
+          fill="var(--odo-label,#8899bb)" font-family="Inter,sans-serif"
+          pointer-events="none">{{ num }}</text>
+  </g>
+  {% endfor %}
+
+  <!-- Midline markers -->
+  <line x1="316" y1="22"  x2="316" y2="83"
+        stroke="var(--odo-midline,rgba(74,158,255,.35))" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="316" y1="94"  x2="316" y2="158"
+        stroke="var(--odo-midline,rgba(74,158,255,.35))" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Quadrant labels -->
+  <text x="155" y="8" text-anchor="middle" font-size="6"
+        fill="var(--odo-label,#8899bb)" font-family="Inter,sans-serif">← Dir.</text>
+  <text x="475" y="8" text-anchor="middle" font-size="6"
+        fill="var(--odo-label,#8899bb)" font-family="Inter,sans-serif">Esq. →</text>
+
+</svg><!-- /svg -->
+
+<!-- ── Finding legend ─────────────────────────────────────── -->
+<div class="d-flex flex-wrap gap-2 mt-2" style="font-size:.68rem">
+  {% for color, label in [
+    ('#10b981',_('Saudável')),
+    ('#f87171',_('Cárie')),
+    ('#9ca3af',_('Extração')),
+    ('#fbbf24',_('Coroa')),
+    ('#60a5fa',_('Ponte')),
+    ('#34d399',_('Implante')),
+    ('#374151',_('Ausente')),
+    ('#a78bfa',_('Endodontia')),
+  ] %}
+  <span class="d-inline-flex align-items-center gap-1">
+    <svg width="10" height="10" style="flex-shrink:0">
+      <rect width="10" height="10" rx="2" fill="{{ color }}"/>
+    </svg>
+    <span style="color:var(--dc-text-muted)">{{ label }}</span>
+  </span>
+  {% endfor %}
+</div>
+
+{% if not is_readonly %}
+<!-- ── Floating contextual popup ──────────────────────────── -->
+<div id="odo-popup" class="odo-popup" style="display:none" role="dialog">
+
+  <div class="odo-popup-head">
+    <div>
+      <div class="odo-popup-tooth-num" id="odo-pnum">—</div>
+      <div class="odo-popup-tooth-name" id="odo-pname">—</div>
+    </div>
+    <button class="odo-popup-x" onclick="closeOdoPopup()" title="{{ _('Fechar') }}" aria-label="{{ _('Fechar') }}">✕</button>
+  </div>
+
+  <div class="odo-popup-body">
+    <!-- Current finding chip -->
+    <div class="odo-current-chip" id="odo-chip">
+      <div class="odo-current-dot" id="odo-chip-dot"></div>
+      <span id="odo-chip-label"></span>
+      <button class="odo-chip-clear" onclick="clearFinding()" title="{{ _('Remover') }}">✕</button>
+    </div>
+
+    <!-- 2-col finding grid -->
+    <div class="odo-finding-grid">
+      {% for val, color, label in [
+        ('healthy',    '#10b981', _('Saudável')),
+        ('caries',     '#f87171', _('Cárie')),
+        ('extraction', '#9ca3af', _('Extração')),
+        ('crown',      '#fbbf24', _('Coroa')),
+        ('bridge',     '#60a5fa', _('Ponte')),
+        ('implant',    '#34d399', _('Implante')),
+        ('missing',    '#374151', _('Ausente')),
+        ('root_canal', '#a78bfa', _('Endodontia')),
+      ] %}
+      <button class="odo-fbtn" data-val="{{ val }}" data-color="{{ color }}"
+              onclick="setFinding('{{ val }}','{{ color }}')"
+              style="border-left-color:{{ color }}">
+        <span class="odo-fdot" style="background:{{ color }}"></span>
+        {{ label }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Notes -->
+    <label style="font-size:.68rem;color:var(--dc-text-muted);display:block;margin-bottom:.25rem">
+      <i class="bi bi-pencil-square me-1"></i>{{ _('Observações') }}
+    </label>
+    <textarea id="odo-notes" class="odo-notes" rows="2"
+              placeholder="{{ _('Notas clínicas…') }}"></textarea>
+  </div>
+
+  <div class="odo-popup-foot">
+    <button type="button" onclick="closeOdoPopup()"
+            class="btn btn-sm btn-primary">
+      <i class="bi bi-check-lg me-1"></i>{{ _('OK') }}
+    </button>
+  </div>
+
+</div><!-- /odo-popup -->
+{% endif %}
+
+</div><!-- /odontogram-container -->

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Nova Sessão') }}{% endblock %}
+{% block page_title %}<i class="bi bi-clipboard2-plus-fill me-2"></i>{{ _('Nova Sessão Clínica') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tooth-btn { width:32px; height:32px; border-radius:6px; border:2px solid var(--dc-border); background:var(--dc-card-bg); cursor:pointer; font-size:.6rem; display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:.15s; }
+.tooth-btn:hover { border-color:var(--dc-primary); }
+.tooth-btn.has-finding { border-color:var(--dc-warning)!important; background:rgba(255,193,7,.12); }
+.tooth-finding-dot { width:6px;height:6px;border-radius:50%;position:absolute;top:2px;right:2px; }
+.finding-caries { background:#f87171; }
+.finding-extraction { background:#6b7280; }
+.finding-crown { background:#fbbf24; }
+.finding-bridge { background:#60a5fa; }
+.finding-implant { background:#34d399; }
+.finding-missing { background:#374151; }
+.finding-root_canal { background:#a78bfa; }
+.finding-healthy { background:#10b981; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+  {{ form.hidden_tag() }}
+
+  <div class="row g-4">
+    <!-- Left col: patient + form -->
+    <div class="col-lg-8">
+      <!-- Patient selector -->
+      <div class="dc-card p-4 mb-4">
+        <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-person-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Paciente') }}</h6>
+        {% set picker_id = 'sess' %}
+        {% set field_name = 'patient_id' %}
+        {% set allow_blank = false %}
+        {% set selected_id = request.args.get('patient_id', 0) | int %}
+        {% include '_patient_picker.html' %}
+      </div>
+
+      <!-- Clinical Notes -->
+      <div class="dc-card p-4 mb-4">
+        <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-file-text-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Notas Clínicas') }}</h6>
+        <div class="mb-3">
+          <label class="form-label form-label-sm">{{ form.chief_complaint.label.text }}</label>
+          {{ form.chief_complaint(class='form-control form-control-sm', rows=2, placeholder=_('Motivo principal da consulta...')) }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label form-label-sm">{{ form.clinical_notes.label.text }}</label>
+          {{ form.clinical_notes(class='form-control form-control-sm', rows=4, placeholder=_('Observações clínicas detalhadas...')) }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label form-label-sm">{{ form.diagnosis.label.text }}</label>
+          {{ form.diagnosis(class='form-control form-control-sm', rows=2) }}
+        </div>
+        <div class="mb-0">
+          <label class="form-label form-label-sm">{{ form.treatment_plan.label.text }}</label>
+          {{ form.treatment_plan(class='form-control form-control-sm', rows=2) }}
+        </div>
+      </div>
+
+      <!-- Treatments performed -->
+      <div class="dc-card p-4 mb-4">
+        <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-tools me-2" style="color:var(--dc-primary)"></i>{{ _('Tratamentos Realizados') }}</h6>
+        <div class="row g-2">
+          {% for val, label in form.treatments.choices %}
+          <div class="col-12 col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="treatments" value="{{ val }}" id="t{{ val }}">
+              <label class="form-check-label small" for="t{{ val }}">{{ label }}</label>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12"><small class="text-muted">{{ _('Nenhum tratamento no catálogo. Adicione em Catálogo → Tratamentos.') }}</small></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right col: odontogram + status -->
+    <div class="col-lg-4">
+      <!-- Odontogram -->
+      <div class="dc-card p-3 mb-4">
+        <h6 class="mb-2" style="color:var(--dc-text)"><i class="bi bi-grid-3x3-gap-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Odontograma') }}</h6>
+        <p class="small mb-2" style="color:var(--dc-text-muted)">{{ _('Clique em cada dente para registar achados clínicos.') }}</p>
+        {% include 'sessions/_odontogram.html' %}
+        {{ form.odontogram_data(id='odontogram_data') }}
+      </div>
+
+      <!-- Status -->
+      <div class="dc-card p-3 mb-4">
+        <h6 class="mb-2" style="color:var(--dc-text)"><i class="bi bi-toggle-on me-2" style="color:var(--dc-primary)"></i>{{ _('Estado da Sessão') }}</h6>
+        {{ form.status(class='form-select form-select-sm') }}
+      </div>
+
+      <div class="d-grid gap-2">
+        {{ form.submit(class='btn btn-primary') }}
+        <a href="{{ url_for('sessions.index') }}" class="btn btn-outline-secondary btn-sm">{{ _('Cancelar') }}</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% include 'sessions/_odontogram_js.html' %}
+{% endblock %}

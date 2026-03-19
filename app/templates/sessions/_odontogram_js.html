@@ -1,0 +1,252 @@
+<script>
+/* ─── Odontogram state ──────────────────────────────────────────────────────
+ * _odoData: { "11": { f:"caries", c:"#f87171", n:"note" }, … }
+ * Backward-compat: old format { "11":"caries" } loaded on DOMContentLoaded.
+ * Hidden field stores: { "11": { "f":"caries","n":"note" }, … }
+ * ──────────────────────────────────────────────────────────────────────── */
+var _odoData     = {};
+var _activeTooth = null;
+
+var FINDING_COLORS = {
+  healthy:'#10b981', caries:'#f87171', extraction:'#9ca3af',
+  crown:'#fbbf24',   bridge:'#60a5fa', implant:'#34d399',
+  missing:'#374151', root_canal:'#a78bfa'
+};
+
+var FINDING_LABELS = {
+  healthy:'Saudável', caries:'Cárie', extraction:'Extração',
+  crown:'Coroa',      bridge:'Ponte', implant:'Implante',
+  missing:'Ausente',  root_canal:'Endodontia'
+};
+
+/* ── Portuguese tooth name from FDI number ─────────────────────────────── */
+function _toothName(num) {
+  var n  = String(num);
+  var q  = n[0], t = n[1];
+  var types  = { '1':'Inc. Central','2':'Inc. Lateral','3':'Canino',
+                 '4':'Pré-Molar 1','5':'Pré-Molar 2',
+                 '6':'Molar 1','7':'Molar 2','8':'Siso' };
+  var quads  = { '1':'Sup. Dir.','2':'Sup. Esq.',
+                 '3':'Inf. Esq.','4':'Inf. Dir.' };
+  return (types[t] || ('Dente '+t)) + ' — ' + (quads[q] || q);
+}
+
+/* ── Load existing data on page ready ──────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  var hidden = document.getElementById('odontogram_data');
+  if (hidden && hidden.value) {
+    try {
+      var raw = JSON.parse(hidden.value);
+      for (var k in raw) {
+        var v = raw[k];
+        if (typeof v === 'string') {
+          // old format: { "11": "caries" }
+          _odoData[k] = { f: v, c: FINDING_COLORS[v] || '#ffffff', n: '' };
+        } else if (v && v.f) {
+          // new format: { "11": { f, c, n } }
+          _odoData[k] = { f: v.f, c: v.c || FINDING_COLORS[v.f] || '#fff', n: v.n || '' };
+        } else if (v && v.finding) {
+          // legacy transition format: { finding, color }
+          _odoData[k] = { f: v.finding, c: v.color || FINDING_COLORS[v.finding] || '#fff', n: '' };
+        }
+      }
+    } catch(e) { _odoData = {}; }
+  }
+  _renderOdontogram();
+
+  /* Move popup to <body> so it is never clipped by any ancestor overflow */
+  var popup = document.getElementById('odo-popup');
+  if (popup) document.body.appendChild(popup);
+
+  /* Close popup when clicking outside */
+  document.addEventListener('mousedown', function(e) {
+    var popup = document.getElementById('odo-popup');
+    if (!popup) return;
+    if (popup.style.display === 'none') return;
+    if (!popup.contains(e.target) && !e.target.closest('.odo-tooth')) {
+      closeOdoPopup();
+    }
+  });
+});
+
+/* ── Open the contextual popup near the clicked tooth ──────────────────── */
+function openToothModal(num) {
+  var popup = document.getElementById('odo-popup');
+  if (!popup) return;
+
+  /* Deactivate previous */
+  if (_activeTooth) {
+    var prev = document.getElementById('odo-g-' + _activeTooth);
+    if (prev) prev.classList.remove('odo-active');
+  }
+  _activeTooth = num;
+
+  /* Mark tooth active */
+  var group = document.getElementById('odo-g-' + num);
+  if (group) group.classList.add('odo-active');
+
+  /* ── Update popup content ─────────────────────────────────────── */
+  document.getElementById('odo-pnum').textContent  = 'Dente ' + num;
+  document.getElementById('odo-pname').textContent = _toothName(num);
+
+  var entry = _odoData[String(num)];
+
+  /* Current finding chip */
+  var chip  = document.getElementById('odo-chip');
+  var dot   = document.getElementById('odo-chip-dot');
+  var lbl   = document.getElementById('odo-chip-label');
+  if (entry && entry.f) {
+    chip.classList.add('show');
+    dot.style.background  = entry.c || '#fff';
+    lbl.textContent       = FINDING_LABELS[entry.f] || entry.f;
+  } else {
+    chip.classList.remove('show');
+  }
+
+  /* Highlight active finding button */
+  document.querySelectorAll('.odo-fbtn').forEach(function(btn) {
+    btn.classList.toggle('active', !!(entry && btn.dataset.val === entry.f));
+  });
+
+  /* Notes */
+  var notes = document.getElementById('odo-notes');
+  if (notes) notes.value = (entry && entry.n) ? entry.n : '';
+
+  /* ── Position popup near the tooth ───────────────────────────── */
+  popup.style.display = 'block';
+  _positionPopup(group, popup);
+}
+
+function _positionPopup(group, popup) {
+  if (!group) return;
+
+  /* Use viewport-relative coords (position:fixed; popup is appended to body) */
+  var gr   = group.getBoundingClientRect();
+  var popW = popup.offsetWidth  || 228;
+  var popH = popup.offsetHeight || 320;
+  var vw   = window.innerWidth;
+  var vh   = window.innerHeight;
+  var GAP  = 8;
+
+  /* Default: open to the right of the tooth */
+  var left = gr.right + GAP;
+  var top  = gr.top - 4;
+
+  /* If it overflows on the right → try left */
+  if (left + popW > vw - GAP) {
+    left = gr.left - popW - GAP;
+  }
+  /* If it still overflows (very narrow screen) → open below, centred */
+  if (left < GAP) {
+    left = Math.max(GAP, gr.left + gr.width / 2 - popW / 2);
+    top  = gr.bottom + GAP;
+  }
+
+  /* Clamp vertically so it never leaves the viewport */
+  top = Math.max(GAP, Math.min(top, vh - popH - GAP));
+
+  popup.style.left = Math.round(left) + 'px';
+  popup.style.top  = Math.round(top)  + 'px';
+}
+
+/* ── Set a finding ─────────────────────────────────────────────────────── */
+function setFinding(finding, color) {
+  if (!_activeTooth) return;
+  var key     = String(_activeTooth);
+  var note    = (document.getElementById('odo-notes') || {}).value || '';
+  _odoData[key] = { f: finding, c: color, n: note };
+  _syncHiddenField();
+  _renderOdontogram();
+
+  /* Update chip without closing */
+  var chip = document.getElementById('odo-chip');
+  var dot  = document.getElementById('odo-chip-dot');
+  var lbl  = document.getElementById('odo-chip-label');
+  chip.classList.add('show');
+  dot.style.background = color;
+  lbl.textContent      = FINDING_LABELS[finding] || finding;
+
+  /* Highlight button */
+  document.querySelectorAll('.odo-fbtn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.val === finding);
+  });
+}
+
+/* ── Clear a finding ───────────────────────────────────────────────────── */
+function clearFinding() {
+  if (!_activeTooth) return;
+  var key  = String(_activeTooth);
+  var note = (document.getElementById('odo-notes') || {}).value || '';
+  if (note) {
+    _odoData[key] = { f: null, c: null, n: note };
+  } else {
+    delete _odoData[key];
+  }
+  _syncHiddenField();
+  _renderOdontogram();
+
+  document.getElementById('odo-chip').classList.remove('show');
+  document.querySelectorAll('.odo-fbtn').forEach(function(b){ b.classList.remove('active'); });
+}
+
+/* ── Close popup ───────────────────────────────────────────────────────── */
+function closeOdoPopup() {
+  /* Save note before closing */
+  if (_activeTooth) {
+    var notes = document.getElementById('odo-notes');
+    if (notes) {
+      var key   = String(_activeTooth);
+      var entry = _odoData[key] || {};
+      entry.n   = notes.value;
+      if (entry.f || entry.n) {
+        _odoData[key] = entry;
+      } else {
+        delete _odoData[key];
+      }
+      _syncHiddenField();
+    }
+    var group = document.getElementById('odo-g-' + _activeTooth);
+    if (group) group.classList.remove('odo-active');
+    _activeTooth = null;
+  }
+  var popup = document.getElementById('odo-popup');
+  if (popup) popup.style.display = 'none';
+}
+
+/* ── Sync hidden form field ─────────────────────────────────────────────── */
+function _syncHiddenField() {
+  var hidden = document.getElementById('odontogram_data');
+  if (!hidden) return;
+  var out = {};
+  for (var k in _odoData) {
+    var e = _odoData[k];
+    if (e && (e.f || e.n)) {
+      out[k] = { f: e.f || null, n: e.n || '' };
+    }
+  }
+  hidden.value = JSON.stringify(out);
+}
+
+/* ── Render all tooth finding overlays ─────────────────────────────────── */
+function _renderOdontogram() {
+  document.querySelectorAll('[id^="odo-finding-"]').forEach(function(el) {
+    var num   = el.id.replace('odo-finding-', '');
+    var entry = _odoData[num];
+    var path  = document.getElementById('odo-path-' + num);
+
+    if (entry && entry.f) {
+      el.setAttribute('fill', entry.c || '#fff');
+      if (path) {
+        path.setAttribute('stroke', entry.c || '#fff');
+        path.setAttribute('stroke-width', '2');
+      }
+    } else {
+      el.setAttribute('fill', 'transparent');
+      if (path) {
+        path.setAttribute('stroke', 'var(--odo-border,#3a4460)');
+        path.setAttribute('stroke-width', '1.5');
+      }
+    }
+  });
+}
+</script>

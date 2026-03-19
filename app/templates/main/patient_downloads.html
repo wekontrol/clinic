@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Downloads PDF') }}{% endblock %}
+{% block page_title %}<i class="bi bi-file-pdf-fill me-2"></i>{{ _('Downloads PDF') }}{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12">
+    <div class="dc-card">
+      <div class="dc-section-title mb-3">
+        <i class="bi bi-person-heart me-2"></i>{{ patient.full_name }}
+      </div>
+      <p class="text-muted" style="font-size:.85rem">
+        {{ _('Aqui pode descarregar os seus documentos clínicos em PDF.') }}
+      </p>
+    </div>
+  </div>
+
+  {% for sess in sessions %}
+  <div class="col-md-6">
+    <div class="dc-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="badge bg-primary" style="font-size:.75rem">{{ sess.session_code }}</span>
+        <small class="text-muted">{{ sess.session_date.strftime('%d/%m/%Y') if sess.session_date else '—' }}</small>
+      </div>
+      <div style="font-size:.85rem;color:var(--dc-text-muted);margin-bottom:.75rem">
+        {{ _('Dentista') }}: {{ sess.dentist.full_name if sess.dentist else '—' }}
+      </div>
+
+      <!-- Language selector -->
+      <div class="d-flex flex-wrap gap-2">
+        {% for lang, label in [('pt', 'PT'), ('en', 'EN'), ('es', 'ES')] %}
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-translate me-1"></i>{{ label }}
+          </button>
+          <ul class="dropdown-menu">
+            <li>
+              <a class="dropdown-item" href="{{ url_for('sessions.pdf_treatment_plan', session_id=sess.id, lang=lang) }}" target="_blank">
+                <i class="bi bi-clipboard2-pulse me-2" style="color:var(--dc-primary)"></i>{{ _('Plano de Tratamento') }}
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{{ url_for('sessions.pdf_consent_form', session_id=sess.id, lang=lang) }}" target="_blank">
+                <i class="bi bi-file-check me-2" style="color:#22c55e"></i>{{ _('Consentimento Informado') }}
+              </a>
+            </li>
+            {% set has_rx = sess.prescriptions.count() > 0 %}
+            {% if has_rx %}
+            <li>
+              <a class="dropdown-item" href="{{ url_for('sessions.pdf_prescription', session_id=sess.id, lang=lang) }}" target="_blank">
+                <i class="bi bi-capsule-pill me-2" style="color:#f59e0b"></i>{{ _('Receita Médica') }}
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="dc-card text-center py-5">
+      <i class="bi bi-inbox fs-1" style="color:var(--dc-muted)"></i>
+      <div class="mt-3" style="color:var(--dc-muted)">{{ _('Nenhuma sessão clínica encontrada.') }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

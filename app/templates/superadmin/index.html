@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Monitor do Servidor') }}{% endblock %}
+{% block page_title %}<i class="bi bi-cpu-fill me-2"></i>{{ _('Painel Superadmin') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.metric-card {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card .metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dc-primary);
+  line-height: 1;
+}
+.metric-card .metric-label {
+  font-size: .78rem;
+  color: var(--dc-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: .4rem;
+}
+.metric-card .metric-sub {
+  font-size: .75rem;
+  color: var(--dc-muted);
+  margin-top: .25rem;
+}
+.gauge-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--dc-border);
+  overflow: hidden;
+  margin-top: .5rem;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .5s ease;
+}
+.smb-section { margin-top: 2rem; }
+.output-box {
+  background: var(--dc-bg);
+  border: 1px solid var(--dc-border);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: .8rem;
+  padding: 1rem;
+  white-space: pre-wrap;
+  min-height: 80px;
+  max-height: 280px;
+  overflow-y: auto;
+  color: var(--dc-text);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4 class="mb-0" style="color:var(--dc-text)">{{ _('Monitor do Servidor') }}</h4>
+        <small class="text-muted">{{ _('Atualização automática a cada 10 segundos') }}</small>
+      </div>
+      <div class="d-flex gap-2">
+        <span class="badge bg-success" id="statusBadge"><i class="bi bi-circle-fill me-1" style="font-size:.6rem"></i>{{ _('Online') }}</span>
+        <span class="text-muted" style="font-size:.78rem" id="lastUpdate">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Metric cards -->
+<div class="row g-3 mb-4" id="metricsRow">
+  <!-- CPU -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="metric-card">
+      <div class="metric-label"><i class="bi bi-cpu me-1"></i>CPU</div>
+      <div class="metric-value" id="cpuPct">—</div>
+      <div class="gauge-bar"><div class="gauge-fill" id="cpuBar" style="background:var(--dc-primary)"></div></div>
+      <div class="metric-sub" id="cpuSub">&nbsp;</div>
+    </div>
+  </div>
+  <!-- RAM -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="metric-card">
+      <div class="metric-label"><i class="bi bi-memory me-1"></i>RAM</div>
+      <div class="metric-value" id="ramPct">—</div>
+      <div class="gauge-bar"><div class="gauge-fill" id="ramBar" style="background:#22c55e"></div></div>
+      <div class="metric-sub" id="ramSub">&nbsp;</div>
+    </div>
+  </div>
+  <!-- Disk -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="metric-card">
+      <div class="metric-label"><i class="bi bi-hdd me-1"></i>{{ _('Disco') }}</div>
+      <div class="metric-value" id="diskPct">—</div>
+      <div class="gauge-bar"><div class="gauge-fill" id="diskBar" style="background:#f59e0b"></div></div>
+      <div class="metric-sub" id="diskSub">&nbsp;</div>
+    </div>
+  </div>
+  <!-- Network -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="metric-card">
+      <div class="metric-label"><i class="bi bi-wifi me-1"></i>{{ _('Rede') }}</div>
+      <div class="metric-value" style="font-size:1.1rem" id="netSent">—</div>
+      <div class="metric-sub" id="netRecv">&nbsp;</div>
+      <div class="metric-sub" id="bootTime">&nbsp;</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Git Sync -->
+  <div class="col-md-6">
+    <div class="metric-card">
+      <h6 class="mb-3"><i class="bi bi-github me-2"></i>{{ _('Sincronização GitHub') }}</h6>
+      <p class="text-muted" style="font-size:.85rem">{{ _('Executa') }} <code>git pull</code> {{ _('no directório do servidor.') }}</p>
+      <button id="gitPullBtn" class="btn btn-primary w-100 mb-3" onclick="runGitPull()">
+        <i class="bi bi-arrow-repeat me-2"></i>{{ _('Executar git pull') }}
+      </button>
+      <div id="gitOutput" class="output-box" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- SMB Backup -->
+  <div class="col-md-6">
+    <div class="metric-card">
+      <h6 class="mb-3"><i class="bi bi-hdd-network-fill me-2"></i>{{ _('Backup SMB') }}</h6>
+
+      <!-- SMB Config form -->
+      <form method="POST" action="{{ url_for('superadmin.smb_config_save') }}" class="mb-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-2">
+          <div class="col-6">
+            <input type="text" class="form-control form-control-sm" name="smb_host" placeholder="{{ _('Host / IP') }}" value="{{ smb_cfg.get('host','') }}">
+          </div>
+          <div class="col-6">
+            <input type="text" class="form-control form-control-sm" name="smb_share" placeholder="{{ _('Share') }}" value="{{ smb_cfg.get('share','') }}">
+          </div>
+          <div class="col-6">
+            <input type="text" class="form-control form-control-sm" name="smb_username" placeholder="{{ _('Utilizador') }}" value="{{ smb_cfg.get('username','') }}">
+          </div>
+          <div class="col-6">
+            <input type="password" class="form-control form-control-sm" name="smb_password" placeholder="{{ _('Palavra-passe') }}" value="{{ smb_cfg.get('password','') }}">
+          </div>
+          <div class="col-12">
+            <input type="text" class="form-control form-control-sm" name="smb_remote_path" placeholder="{{ _('Pasta remota') }}" value="{{ smb_cfg.get('remote_path','dental_backup') }}">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-save me-1"></i>{{ _('Guardar Configuração') }}</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('superadmin.backup') }}" class="flex-fill">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-success w-100 btn-sm">
+            <i class="bi bi-cloud-upload-fill me-1"></i>{{ _('Fazer Backup') }}
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('superadmin.restore') }}" class="flex-fill"
+              onsubmit="return confirm('{{ _('Restaurar a base de dados a partir do backup mais recente? Esta ação é irreversível.') }}')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-warning w-100 btn-sm">
+            <i class="bi bi-cloud-download-fill me-1"></i>{{ _('Restaurar') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Local Browser Backup -->
+<div class="row g-3 mt-0">
+  <div class="col-12">
+    <div class="metric-card">
+      <h6 class="mb-3"><i class="bi bi-laptop me-2"></i>{{ _('Backup Local (Browser)') }}</h6>
+      <p class="mb-3" style="font-size:.82rem;color:var(--dc-text-muted)">
+        {{ _('Descarregue um arquivo ZIP com a base de dados e todos os ficheiros enviados, ou restaure a partir de um ZIP previamente descarregado.') }}
+      </p>
+      <div class="row g-3 align-items-start">
+
+        <!-- Download backup -->
+        <div class="col-md-4">
+          <div class="p-3 rounded-3" style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2)">
+            <div class="fw-600 mb-1" style="font-size:.82rem;color:var(--dc-success)">
+              <i class="bi bi-download me-1"></i>{{ _('Descarregar Backup') }}
+            </div>
+            <p class="mb-2" style="font-size:.75rem;color:var(--dc-text-muted)">
+              {{ _('Gera um ZIP com dental.db + pasta uploads/ e inicia o download imediatamente.') }}
+            </p>
+            <a href="{{ url_for('superadmin.local_backup') }}"
+               class="btn btn-success btn-sm w-100">
+              <i class="bi bi-file-zip-fill me-1"></i>{{ _('Descarregar ZIP') }}
+            </a>
+          </div>
+        </div>
+
+        <!-- Restore from ZIP -->
+        <div class="col-md-8">
+          <div class="p-3 rounded-3" style="background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.2)">
+            <div class="fw-600 mb-1" style="font-size:.82rem;color:var(--dc-warning)">
+              <i class="bi bi-upload me-1"></i>{{ _('Restaurar a partir de ZIP') }}
+            </div>
+            <p class="mb-2" style="font-size:.75rem;color:var(--dc-text-muted)">
+              {{ _('Seleccione um ZIP previamente descarregado. A base de dados e os uploads serão substituídos. Esta ação é irreversível.') }}
+            </p>
+            <form method="POST" action="{{ url_for('superadmin.local_restore') }}"
+                  enctype="multipart/form-data"
+                  onsubmit="return confirm('{{ _('Substituir a base de dados e uploads pelo conteúdo do ZIP? Esta ação é irreversível.') }}')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="d-flex gap-2 align-items-center">
+                <div class="flex-fill">
+                  <input type="file" name="backup_file" accept=".zip"
+                         class="form-control form-control-sm"
+                         required
+                         style="font-size:.78rem">
+                </div>
+                <button type="submit" class="btn btn-warning btn-sm" style="white-space:nowrap">
+                  <i class="bi bi-arrow-clockwise me-1"></i>{{ _('Restaurar') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function gaugeColor(pct) {
+  if (pct < 60) return '#22c55e';
+  if (pct < 85) return '#f59e0b';
+  return '#ef4444';
+}
+
+function fetchMetrics() {
+  fetch('{{ url_for("superadmin.api_metrics") }}')
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { document.getElementById('statusBadge').className='badge bg-danger'; return; }
+
+      document.getElementById('statusBadge').className='badge bg-success';
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+      document.getElementById('cpuPct').textContent  = d.cpu_pct + '%';
+      document.getElementById('cpuBar').style.width  = d.cpu_pct + '%';
+      document.getElementById('cpuBar').style.background = gaugeColor(d.cpu_pct);
+
+      document.getElementById('ramPct').textContent  = d.ram_pct + '%';
+      document.getElementById('ramBar').style.width  = d.ram_pct + '%';
+      document.getElementById('ramBar').style.background = gaugeColor(d.ram_pct);
+      document.getElementById('ramSub').textContent  = d.ram_used + ' / ' + d.ram_total;
+
+      document.getElementById('diskPct').textContent = d.disk_pct + '%';
+      document.getElementById('diskBar').style.width = d.disk_pct + '%';
+      document.getElementById('diskBar').style.background = gaugeColor(d.disk_pct);
+      document.getElementById('diskSub').textContent = d.disk_used + ' / ' + d.disk_total;
+
+      document.getElementById('netSent').textContent = '↑ ' + d.net_sent;
+      document.getElementById('netRecv').textContent = '↓ ' + d.net_recv;
+      document.getElementById('bootTime').textContent = '{{ _("Boot") }}: ' + d.boot_time;
+    })
+    .catch(() => { document.getElementById('statusBadge').className='badge bg-danger'; });
+}
+
+fetchMetrics();
+setInterval(fetchMetrics, 10000);
+
+function runGitPull() {
+  const btn = document.getElementById('gitPullBtn');
+  const box = document.getElementById('gitOutput');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ _("A sincronizar…") }}';
+  box.style.display = 'block';
+  box.textContent = '';
+
+  const es = new EventSource('{{ url_for("superadmin.git_pull") }}');
+  es.onmessage = function(e) {
+    const msg = e.data;
+    if (msg === '[DONE]') {
+      es.close();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>{{ _("Executar git pull") }}';
+      return;
+    }
+    box.textContent += msg + '\n';
+    box.scrollTop = box.scrollHeight;
+  };
+  es.onerror = function() {
+    es.close();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>{{ _("Executar git pull") }}';
+    box.textContent += '[ERRO] Conexão interrompida.\n';
+  };
+}
+</script>
+{% endblock %}

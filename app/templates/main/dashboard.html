@@ -1,0 +1,686 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Dashboard') }}{% endblock %}
+{% block page_title %}<i class="bi bi-grid-1x2-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Dashboard') }}{% endblock %}
+
+{% block content %}
+
+{# ─── SUPERADMIN / CLINICAL DIRECTOR ─── #}
+{% if current_user.role in ['superadmin', 'clinical_director'] %}
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('patients.index') }}" style="text-decoration:none">
+      <div class="dc-stat-card" style="cursor:pointer;transition:transform .2s,box-shadow .2s">
+        <div class="dc-stat-icon blue"><i class="bi bi-people-fill"></i></div>
+        <div>
+          <div class="dc-stat-value">{{ total_patients or 0 }}</div>
+          <div class="dc-stat-label">{{ _('Pacientes Ativos') }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('sessions.index') }}" style="text-decoration:none">
+      <div class="dc-stat-card" style="cursor:pointer;transition:transform .2s,box-shadow .2s">
+        <div class="dc-stat-icon green"><i class="bi bi-clipboard2-pulse-fill"></i></div>
+        <div>
+          <div class="dc-stat-value">{{ total_sessions or 0 }}</div>
+          <div class="dc-stat-label">{{ _('Sessões Clínicas') }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('admin.users') }}" style="text-decoration:none">
+      <div class="dc-stat-card" style="cursor:pointer;transition:transform .2s,box-shadow .2s">
+        <div class="dc-stat-icon yellow"><i class="bi bi-person-badge-fill"></i></div>
+        <div>
+          <div class="dc-stat-value">{{ total_dentists or 0 }}</div>
+          <div class="dc-stat-label">{{ _('Dentistas Ativos') }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('scheduling.calendar') }}" style="text-decoration:none">
+      <div class="dc-stat-card" style="cursor:pointer;transition:transform .2s,box-shadow .2s">
+        <div class="dc-stat-icon red"><i class="bi bi-calendar-check-fill"></i></div>
+        <div>
+          <div class="dc-stat-value">{{ total_appointments_today or 0 }}</div>
+          <div class="dc-stat-label">{{ _('Agendamentos Hoje') }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Room Status -->
+  <div class="col-md-5">
+    <div class="dc-card h-100">
+      <div class="dc-section-title"><i class="bi bi-door-open-fill me-2"></i>{{ _('Estado das Salas') }}</div>
+      {% if rooms %}
+      <div class="row g-3">
+        {% for room in rooms %}
+        <div class="col-6">
+          <div class="room-card status-{{ room.status }}">
+            <div class="mb-2" style="font-size:.75rem;font-weight:700;color:var(--dc-text-muted);text-transform:uppercase">
+              {{ _('Sala') }} {{ room.number }}
+            </div>
+            <div class="mb-1">
+              <span class="room-status-dot {{ room.status }}"></span>
+              <span style="font-size:.875rem;font-weight:600;color:var(--dc-white)">
+                {% if room.status == 'green' %}{{ _('Disponível') }}
+                {% elif room.status == 'yellow' %}{{ _('Em Uso') }}
+                {% else %}{{ _('Emergência') }}{% endif %}
+              </span>
+            </div>
+            <div style="font-size:.75rem;color:var(--dc-text-muted)">{{ room.name }}</div>
+            {% if room.status_updated_at %}
+            <div style="font-size:.7rem;color:var(--dc-text-muted);margin-top:.5rem">
+              {{ room.status_updated_at.strftime('%H:%M') }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-4" style="color:var(--dc-text-muted)">
+        <i class="bi bi-door-open fs-2 mb-2 d-block"></i>
+        <small>{{ _('Nenhuma sala configurada') }}</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Sessions -->
+  <div class="col-md-7">
+    <div class="dc-card h-100">
+      <div class="dc-section-title"><i class="bi bi-clock-history me-2"></i>{{ _('Sessões Recentes') }}</div>
+      {% if recent_sessions %}
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>{{ _('Código') }}</th>
+              <th>{{ _('Paciente') }}</th>
+              <th>{{ _('Dentista') }}</th>
+              <th>{{ _('Estado') }}</th>
+              <th>{{ _('Data') }}</th>
+            </tr>
+          </thead>
+          {% set _sess_label = {
+               'scheduled':   _('Agendada'),
+               'in_progress': _('Em Progresso'),
+               'closed':      _('Concluída'),
+               'completed':   _('Concluída'),
+               'cancelled':   _('Cancelada')
+             } %}
+          {% set _sess_color = {
+               'scheduled':   'secondary',
+               'in_progress': 'primary',
+               'closed':      'success',
+               'completed':   'success',
+               'cancelled':   'danger'
+             } %}
+          <tbody>
+            {% for s in recent_sessions %}
+            <tr style="cursor:pointer" onclick="location.href='{{ url_for('sessions.edit', session_id=s.id) }}'">
+              <td>
+                <a href="{{ url_for('sessions.edit', session_id=s.id) }}"
+                   onclick="event.stopPropagation()"
+                   style="color:var(--dc-primary);font-size:.75rem;font-family:monospace;text-decoration:none;white-space:nowrap">
+                  {{ s.session_code }}
+                </a>
+              </td>
+              <td style="font-size:.85rem">{{ s.patient.full_name if s.patient else '—' }}</td>
+              <td style="font-size:.85rem">{{ s.dentist.full_name if s.dentist else '—' }}</td>
+              <td>
+                <span class="badge bg-{{ _sess_color.get(s.status, 'secondary') }}" style="font-size:.65rem">
+                  {{ _sess_label.get(s.status, s.status) }}
+                </span>
+              </td>
+              <td style="font-size:.8rem;color:var(--dc-text-muted)">
+                {{ s.session_date.strftime('%d/%m/%Y') if s.session_date else '—' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4" style="color:var(--dc-text-muted)">
+        <i class="bi bi-clipboard2 fs-2 mb-2 d-block"></i>
+        <small>{{ _('Nenhuma sessão registada') }}</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Mini calendar for director+ -->
+  {% if current_user.role in ['superadmin', 'clinical_director'] %}
+  <div class="col-12">
+    <div class="dc-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="dc-section-title mb-0"><i class="bi bi-calendar3 me-2"></i>{{ _('Agenda de Hoje') }}</div>
+        <a href="{{ url_for('scheduling.calendar') }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-fullscreen me-1"></i>{{ _('Expandir') }}
+        </a>
+      </div>
+      <div id="dash-calendar-director" style="min-height:280px"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Audit Log Preview (director+) -->
+  {% if current_user.role in ['superadmin', 'clinical_director'] %}
+  <div class="col-12">
+    <div class="dc-card">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="dc-section-title mb-0"><i class="bi bi-shield-lock-fill me-2"></i>{{ _('Atividade Recente (Auditoria)') }}</div>
+        <a href="{{ url_for('admin.audit_log') }}" class="btn btn-sm btn-outline-primary">
+          {{ _('Ver Tudo') }} <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      {% if recent_audits %}
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>{{ _('Utilizador') }}</th>
+              <th>{{ _('Ação') }}</th>
+              <th>{{ _('Tabela') }}</th>
+              <th>{{ _('Descrição') }}</th>
+              <th>{{ _('Hora') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in recent_audits %}
+            <tr>
+              <td style="font-size:.8rem">{{ log.username or '—' }}</td>
+              <td>
+                <span class="badge bg-{% if log.action == 'CREATE' %}success{% elif log.action == 'UPDATE' %}warning text-dark{% elif log.action == 'DELETE' %}danger{% else %}secondary{% endif %}" style="font-size:.65rem">
+                  {{ log.action }}
+                </span>
+              </td>
+              <td><code style="font-size:.75rem;color:var(--dc-text-muted)">{{ log.table_name }}</code></td>
+              <td style="font-size:.8rem;color:var(--dc-text-muted)">{{ (log.description or '')[:60] }}</td>
+              <td style="font-size:.75rem;color:var(--dc-text-muted)">
+                {{ log.timestamp.strftime('%d/%m %H:%M') if log.timestamp else '—' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-3" style="color:var(--dc-text-muted)">
+        <small>{{ _('Nenhuma atividade registada') }}</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ─── CHART.JS KPI SECTION ─── -->
+  {% if current_user.role in ['superadmin', 'clinical_director'] %}
+  <div class="col-12">
+    <div class="d-flex align-items-center justify-content-between py-2 mb-1">
+      <div class="dc-section-title mb-0">
+        <i class="bi bi-bar-chart-fill me-2" style="color:var(--dc-primary)"></i>{{ _('KPIs Clínicos') }}
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" id="kpiRefreshBtn" title="{{ _('Atualizar KPIs') }}">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  {# Macro for a KPI chart card #}
+  {%- macro kpi_card(icon, title, canvas_id) %}
+  <div class="col-md-6">
+    <div class="dc-card">
+      <div class="dc-section-title mb-2" style="font-size:.82rem">
+        <i class="bi bi-{{ icon }} me-2"></i>{{ title }}
+      </div>
+      <div id="{{ canvas_id }}_wrap" style="position:relative;min-height:160px">
+        <div id="{{ canvas_id }}_loading" class="d-flex align-items-center justify-content-center" style="min-height:160px">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        </div>
+        <canvas id="{{ canvas_id }}" height="160" style="display:none"></canvas>
+        <div id="{{ canvas_id }}_empty" class="d-none text-center py-4" style="color:var(--dc-text-muted);font-size:.82rem">
+          <i class="bi bi-bar-chart-line fs-4 d-block mb-1"></i>{{ _('Sem dados suficientes') }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {%- endmacro %}
+
+  {{ kpi_card('calendar2-week',    _('Consultas por Semana (12 sem.)'),   'chartApptWeek') }}
+  {{ kpi_card('calendar3',         _('Consultas por Mês (12 meses)'),     'chartApptMonth') }}
+  {{ kpi_card('pie-chart-fill',    _('Top Tratamentos'),                  'chartTopTx') }}
+  {{ kpi_card('people',            _('Pacientes por Dentista'),           'chartPatDoc') }}
+  {{ kpi_card('graph-up-arrow',    _('Sessões por Mês (6 meses)'),        'chartSessMonth') }}
+  {{ kpi_card('door-open',         _('Utilização de Salas'),              'chartRoomUtil') }}
+  {{ kpi_card('person-plus-fill',  _('Novos Pacientes por Mês'),         'chartNewPat') }}
+  {% endif %}
+
+</div>
+
+{# ─── DENTIST ─── #}
+{% elif current_user.role == 'dentist' %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('patients.index') }}" style="text-decoration:none;display:block">
+      <div class="dc-stat-card" style="cursor:pointer;transition:transform .18s,box-shadow .18s">
+        <div class="dc-stat-icon blue"><i class="bi bi-people-fill"></i></div>
+        <div>
+          <div class="dc-stat-value">{{ my_patients or 0 }}</div>
+          <div class="dc-stat-label">{{ _('Meus Pacientes') }}</div>
+          <div style="font-size:.7rem;color:var(--dc-primary);margin-top:.25rem">
+            <i class="bi bi-arrow-right-circle me-1"></i>{{ _('Ver todos') }}
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('sessions.index') }}" style="text-decoration:none;display:block">
+      <div class="dc-stat-card" style="cursor:pointer;transition:transform .18s,box-shadow .18s">
+        <div class="dc-stat-icon green"><i class="bi bi-clipboard2-pulse-fill"></i></div>
+        <div>
+          <div class="dc-stat-value">{{ my_sessions or 0 }}</div>
+          <div class="dc-stat-label">{{ _('Minhas Sessões') }}</div>
+          <div style="font-size:.7rem;color:var(--dc-success,#22c55e);margin-top:.25rem">
+            <i class="bi bi-arrow-right-circle me-1"></i>{{ _('Ver todas') }}
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="dc-card h-100">
+      <div class="dc-section-title"><i class="bi bi-door-open-fill me-2"></i>{{ _('Estado das Salas') }}</div>
+      {% if rooms %}
+      <div class="row g-3">
+        {% for room in rooms %}
+        <div class="col-6">
+          <div class="room-card status-{{ room.status }}">
+            <div class="mb-1" style="font-size:.75rem;font-weight:700;color:var(--dc-text-muted)">{{ _('Sala') }} {{ room.number }}</div>
+            <span class="room-status-dot {{ room.status }}"></span>
+            <span style="font-size:.875rem;font-weight:600;color:var(--dc-white)">
+              {% if room.status == 'green' %}{{ _('Disponível') }}{% elif room.status == 'yellow' %}{{ _('Em Uso') }}{% else %}{{ _('Emergência') }}{% endif %}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="dc-card h-100">
+      <div class="dc-section-title"><i class="bi bi-clock-history me-2"></i>{{ _('Minhas Sessões Recentes') }}</div>
+      {% if recent_sessions %}
+      {% set _sl = {'scheduled':_('Agendada'),'in_progress':_('Em Progresso'),'closed':_('Concluída'),'completed':_('Concluída'),'cancelled':_('Cancelada')} %}
+      {% set _sc = {'scheduled':'secondary','in_progress':'primary','closed':'success','completed':'success','cancelled':'danger'} %}
+      <table class="table table-sm mb-0">
+        <tbody>
+          {% for s in recent_sessions %}
+          <tr style="cursor:pointer" onclick="location.href='{{ url_for('sessions.edit', session_id=s.id) }}'">
+            <td>
+              <a href="{{ url_for('sessions.edit', session_id=s.id) }}"
+                 onclick="event.stopPropagation()"
+                 style="color:var(--dc-primary);font-size:.75rem;font-family:monospace;text-decoration:none;white-space:nowrap">
+                {{ s.session_code }}
+              </a>
+            </td>
+            <td style="font-size:.85rem">{{ s.patient.full_name if s.patient else '—' }}</td>
+            <td>
+              <span class="badge bg-{{ _sc.get(s.status,'secondary') }}" style="font-size:.6rem">
+                {{ _sl.get(s.status, s.status) }}
+              </span>
+            </td>
+            <td style="font-size:.8rem;color:var(--dc-text-muted)">{{ s.session_date.strftime('%d/%m/%Y') if s.session_date else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-4" style="color:var(--dc-text-muted)"><small>{{ _('Sem sessões') }}</small></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ─── RECEPTION ─── #}
+{% elif current_user.role == 'reception' %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="dc-stat-card">
+      <div class="dc-stat-icon blue"><i class="bi bi-calendar3"></i></div>
+      <div>
+        <div class="dc-stat-value">{{ total_appointments_today or 0 }}</div>
+        <div class="dc-stat-label">{{ _('Agendamentos') }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="dc-card">
+      <div class="dc-section-title"><i class="bi bi-door-open-fill me-2"></i>{{ _('Estado das Salas') }}</div>
+      {% if rooms %}
+      <div class="row g-3">
+        {% for room in rooms %}
+        <div class="col-6">
+          <div class="room-card status-{{ room.status }}">
+            <div class="mb-1" style="font-size:.75rem;font-weight:700;color:var(--dc-text-muted)">{{ _('Sala') }} {{ room.number }}</div>
+            <span class="room-status-dot {{ room.status }}"></span>
+            <span style="font-size:.875rem;font-weight:600;color:var(--dc-white)">
+              {% if room.status == 'green' %}{{ _('Disponível') }}{% elif room.status == 'yellow' %}{{ _('Em Uso') }}{% else %}{{ _('Emergência') }}{% endif %}
+            </span>
+            <div style="font-size:.72rem;color:var(--dc-text-muted);margin-top:.4rem">{{ room.name }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="dc-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="dc-section-title mb-0"><i class="bi bi-calendar3 me-2"></i>{{ _('Agenda de Hoje') }}</div>
+        <a href="{{ url_for('scheduling.calendar') }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-fullscreen me-1"></i>{{ _('Expandir') }}
+        </a>
+      </div>
+      <div id="dash-calendar-reception" style="min-height:280px"></div>
+    </div>
+  </div>
+</div>
+
+{# ─── PATIENT ─── #}
+{% elif current_user.role == 'patient' %}
+<div class="row g-3">
+  <div class="col-12">
+    <div class="dc-card">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="dc-user-avatar" style="width:56px;height:56px;font-size:1.2rem">
+          {{ current_user.full_name[:2].upper() }}
+        </div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--dc-white)">
+            {{ _('Olá, %(name)s', name=current_user.full_name.split()[0]) }}
+          </div>
+          <div style="font-size:.8rem;color:var(--dc-text-muted)">{{ _('Bem-vindo ao seu portal de saúde') }}</div>
+        </div>
+      </div>
+
+      {% if patient %}
+        <!-- Documents section -->
+        <div class="dc-section-title mb-3"><i class="bi bi-file-earmark-pdf-fill me-2" style="color:var(--dc-danger)"></i>{{ _('Os Meus Documentos') }}</div>
+        <div class="alert" style="background:rgba(74,158,255,.08);border:1px solid var(--dc-border);border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem">
+          <div class="d-flex align-items-center gap-2" style="font-size:.82rem;color:var(--dc-text-muted)">
+            <i class="bi bi-info-circle-fill" style="color:var(--dc-primary)"></i>
+            <span>{{ _('Os seus relatórios e receitas médicas estão disponíveis por sessão.') }}</span>
+          </div>
+          <div class="row g-2 mt-2">
+            <div class="col-6 col-md-4">
+              <a href="{{ url_for('main.patient_downloads') }}" class="btn btn-outline-primary btn-sm w-100">
+                <i class="bi bi-file-pdf-fill me-1"></i>{{ _('Descarregar PDFs') }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {% if sessions %}
+        <div class="dc-section-title"><i class="bi bi-clock-history me-2"></i>{{ _('O Seu Historial de Tratamentos') }}</div>
+        <div class="position-relative ps-4">
+          <!-- Timeline line -->
+          <div style="position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--dc-border)"></div>
+          {% for s in sessions %}
+          <div class="mb-4 position-relative">
+            <!-- Timeline dot -->
+            <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--dc-primary);border:2px solid var(--dc-bg)"></div>
+            <div class="dc-card dc-card-sm">
+              <div class="d-flex align-items-start justify-content-between">
+                <div>
+                  <div style="font-size:.75rem;color:var(--dc-text-muted)">
+                    {{ s.session_date.strftime('%d de %B de %Y, %H:%M') if s.session_date else '—' }}
+                  </div>
+                  <div style="font-size:.9rem;font-weight:600;color:var(--dc-white);margin-top:.2rem">
+                    <i class="bi bi-person-badge-fill me-1" style="color:var(--dc-success)"></i>
+                    {{ s.dentist.full_name if s.dentist else _('Dentista não especificado') }}
+                  </div>
+                  {% if s.chief_complaint %}
+                  <div style="font-size:.8rem;color:var(--dc-text-muted);margin-top:.3rem">
+                    {{ s.chief_complaint[:100] }}{% if s.chief_complaint|length > 100 %}…{% endif %}
+                  </div>
+                  {% endif %}
+                </div>
+                <code style="font-size:.7rem;color:var(--dc-primary)">{{ s.session_code }}</code>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5" style="color:var(--dc-text-muted)">
+          <i class="bi bi-heart-pulse fs-1 mb-3 d-block" style="color:var(--dc-primary)"></i>
+          <div style="font-size:.9rem">{{ _('Ainda não tem sessões registadas') }}</div>
+          <div style="font-size:.8rem;margin-top:.5rem">{{ _('O seu historial de tratamentos aparecerá aqui') }}</div>
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        {{ _('O seu perfil de paciente ainda não está associado. Contacte a recepção.') }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+{% if current_user.role in ['superadmin', 'clinical_director', 'reception'] %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<style>
+#dash-calendar-reception .fc .fc-toolbar-title { font-size: .9rem; color: var(--dc-white); }
+#dash-calendar-reception .fc .fc-button { font-size: .72rem; padding: .2rem .5rem; background: var(--dc-primary); border-color: var(--dc-primary); }
+#dash-calendar-reception .fc-theme-standard .fc-scrollgrid { border-color: var(--dc-border); }
+#dash-calendar-reception .fc-theme-standard td, #dash-calendar-reception .fc-theme-standard th { border-color: var(--dc-border); }
+#dash-calendar-reception .fc .fc-daygrid-day { background: var(--dc-card); }
+#dash-calendar-reception .fc .fc-daygrid-day-number { color: var(--dc-text); font-size: .75rem; }
+#dash-calendar-reception .fc .fc-col-header-cell-cushion { color: var(--dc-text-muted); font-size: .75rem; }
+#dash-calendar-reception .fc .fc-event { font-size: .7rem; }
+</style>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if current_user.role in ['superadmin', 'clinical_director', 'reception'] %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const calConfig = {
+    initialView: 'listDay',
+    timeZone:    'local',
+    locale:      '{{ get_locale() }}',
+    headerToolbar: { left: 'prev,next', center: 'title', right: 'listDay,timeGridDay' },
+    buttonText: { today: '{{ _("Hoje") }}', day: '{{ _("Dia") }}', list: '{{ _("Lista") }}' },
+    height: 280,
+    allDaySlot: false,
+    nowIndicator: true,
+    eventSources: [{ url: '{{ url_for("scheduling.appointments_api") }}', method: 'GET',
+                     failure: function(){ console.warn('[DashCalendar] failed to load events'); } }],
+    eventClick: function() { window.location.href = '{{ url_for("scheduling.calendar") }}'; },
+    noEventsContent: '{{ _("Sem consultas hoje") }}'
+  };
+
+  ['dash-calendar-director', 'dash-calendar-reception'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      new FullCalendar.Calendar(el, Object.assign({}, calConfig)).render();
+    }
+  });
+});
+</script>
+{% endif %}
+
+{% if current_user.role in ['superadmin', 'clinical_director'] %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var isDark     = document.documentElement.getAttribute('data-dc-theme') === 'dark';
+  var textColor  = isDark ? '#a0aec0' : '#374151';
+  var gridColor  = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+  var PALETTE    = ['#14b8a6','#22c55e','#f59e0b','#ef4444','#a78bfa','#ec4899','#06b6d4','#84cc16'];
+  var _charts    = {};   /* id → Chart instance for destroy-on-reload */
+
+  var baseOpts = {
+    responsive: true,
+    maintainAspectRatio: true,
+    animation: { duration: 600 },
+    plugins: {
+      legend: { labels: { color: textColor, font: { size: 11 }, padding: 12 } }
+    },
+    scales: {
+      x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor }, beginAtZero: true }
+    }
+  };
+
+  function _show(id) {
+    var el = document.getElementById(id);
+    if (el) { el.style.display = ''; el.classList.remove('d-none'); }
+  }
+  function _hide(id) {
+    var el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; el.classList.add('d-none'); }
+  }
+  function _ready(id) {
+    _hide(id + '_loading');
+    _show(id);
+  }
+  function _empty(id) {
+    _hide(id + '_loading');
+    _hide(id);
+    _show(id + '_empty');
+  }
+  function _destroyChart(id) {
+    if (_charts[id]) { try { _charts[id].destroy(); } catch(e) {} delete _charts[id]; }
+  }
+  function _allZero(arr) { return arr.every(function(v){ return v === 0; }); }
+
+  function mkBar(id, labels, data, label) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!labels || !labels.length || _allZero(data)) { _empty(id); return; }
+    _destroyChart(id); _ready(id);
+    var opts = JSON.parse(JSON.stringify(baseOpts));
+    _charts[id] = new Chart(el, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: label, data: data, backgroundColor: PALETTE[0], borderRadius: 4 }] },
+      options: opts
+    });
+  }
+
+  function mkPie(id, labels, data) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!labels || !labels.length || _allZero(data)) { _empty(id); return; }
+    _destroyChart(id); _ready(id);
+    _charts[id] = new Chart(el, {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: PALETTE }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        animation: { duration: 600 },
+        plugins: { legend: { labels: { color: textColor, font: { size: 10 }, padding: 10 }, position: 'right' } }
+      }
+    });
+  }
+
+  function mkLine(id, labels, data, label) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!labels || !labels.length) { _empty(id); return; }
+    _destroyChart(id); _ready(id);
+    var opts = JSON.parse(JSON.stringify(baseOpts));
+    _charts[id] = new Chart(el, {
+      type: 'line',
+      data: { labels: labels, datasets: [{
+        label: label, data: data,
+        borderColor: PALETTE[0],
+        backgroundColor: 'rgba(74,158,255,.12)',
+        tension: 0.3, fill: true, pointRadius: 4, pointHoverRadius: 6
+      }] },
+      options: opts
+    });
+  }
+
+  function loadKpi(url, chartId, fn) {
+    fetch(url, { credentials: 'same-origin' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(d) {
+        if (d && Array.isArray(d.labels) && d.labels.length) {
+          fn(d);
+        } else {
+          _empty(chartId);
+        }
+      })
+      .catch(function(err) {
+        console.warn('[KPI] Failed to load', url, err);
+        _empty(chartId);
+      });
+  }
+
+  function loadAll() {
+    loadKpi('{{ url_for("main.kpi_appointments_per_week") }}',    'chartApptWeek',  function(d){ mkBar('chartApptWeek',  d.labels, d.data, '{{ _("Consultas") }}'); });
+    loadKpi('{{ url_for("main.kpi_appointments_per_month") }}',   'chartApptMonth', function(d){ mkBar('chartApptMonth', d.labels, d.data, '{{ _("Consultas") }}'); });
+    loadKpi('{{ url_for("main.kpi_top_treatments") }}',           'chartTopTx',     function(d){ mkPie('chartTopTx',     d.labels, d.data); });
+    loadKpi('{{ url_for("main.kpi_patients_by_doctor") }}',       'chartPatDoc',    function(d){ mkBar('chartPatDoc',    d.labels, d.data, '{{ _("Pacientes") }}'); });
+    loadKpi('{{ url_for("main.kpi_sessions_per_month") }}',       'chartSessMonth', function(d){ mkLine('chartSessMonth',d.labels, d.data, '{{ _("Sessões") }}'); });
+    loadKpi('{{ url_for("main.kpi_room_utilization") }}',         'chartRoomUtil',  function(d){ mkBar('chartRoomUtil',  d.labels, d.data, '{{ _("Consultas") }}'); });
+    loadKpi('{{ url_for("main.kpi_new_patients_per_month") }}',   'chartNewPat',    function(d){ mkBar('chartNewPat',    d.labels, d.data, '{{ _("Pacientes") }}'); });
+  }
+
+  /* Refresh button */
+  var refreshBtn = document.getElementById('kpiRefreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function() {
+      var icon = refreshBtn.querySelector('i');
+      if (icon) icon.classList.add('spin-once');
+      ['chartApptWeek','chartApptMonth','chartTopTx','chartPatDoc',
+       'chartSessMonth','chartRoomUtil','chartNewPat'].forEach(function(id) {
+        _destroyChart(id); _hide(id); _hide(id+'_empty'); _show(id+'_loading');
+      });
+      loadAll();
+      setTimeout(function(){ if (icon) icon.classList.remove('spin-once'); }, 700);
+    });
+  }
+
+  loadAll();
+})();
+</script>
+<style>
+@keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin-once { animation: spin-once 0.65s linear; }
+</style>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,632 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Configurações do Sistema') }}{% endblock %}
+{% block page_title %}<i class="bi bi-sliders me-2" style="color:var(--dc-primary)"></i>{{ _('Configurações do Sistema') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.sys-section {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 14px;
+  padding: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+.sys-section-title {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dc-primary);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.sys-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--dc-border);
+}
+
+/* ── Color picker component ── */
+.color-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: .75rem;
+}
+.color-item label {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--dc-text-muted);
+  margin-bottom: .35rem;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.color-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--dc-bg);
+  border: 1px solid var(--dc-border);
+  border-radius: 8px;
+  padding: .3rem .55rem;
+  transition: border-color .15s;
+}
+.color-picker-wrap:focus-within { border-color: var(--dc-primary); }
+.color-picker-wrap input[type="color"] {
+  width: 30px; height: 30px;
+  border: none; background: none;
+  cursor: pointer; padding: 0;
+  border-radius: 5px; flex-shrink: 0;
+}
+.color-picker-wrap input[type="text"] {
+  background: none; border: none;
+  color: var(--dc-text);
+  font-family: 'SFMono-Regular', monospace;
+  font-size: .85rem;
+  width: 80px;
+  outline: none;
+  letter-spacing: .05em;
+}
+
+/* ── Logo ── */
+.logo-preview-wrap { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.logo-preview-box {
+  width: 72px; height: 72px; border-radius: 12px;
+  border: 2px dashed var(--dc-border);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--dc-bg); overflow: hidden;
+}
+.logo-preview-box img { width: 100%; height: 100%; object-fit: contain; }
+.logo-preview-box .no-logo { color: var(--dc-text-muted); font-size: 1.8rem; }
+
+/* ── Theme tabs ── */
+.theme-tab {
+  cursor: pointer; padding: .5rem 1.2rem;
+  border-radius: 8px 8px 0 0;
+  background: var(--dc-bg);
+  border: 1px solid var(--dc-border); border-bottom: none;
+  font-size: .82rem; font-weight: 600; color: var(--dc-text-muted);
+  transition: color .15s, background .15s;
+}
+.theme-tab.active { background: var(--dc-card); color: var(--dc-primary); }
+.theme-panel { display: none; }
+.theme-panel.active { display: block; }
+
+/* ── Preset swatches ── */
+.presets-row {
+  display: flex; flex-wrap: wrap; gap: .55rem;
+  margin-bottom: 1.25rem;
+}
+.preset-swatch {
+  display: flex; align-items: center; gap: .45rem;
+  padding: .38rem .75rem;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  font-size: .75rem; font-weight: 600;
+  transition: border-color .15s, transform .12s;
+  user-select: none;
+}
+.preset-swatch:hover { transform: translateY(-1px); }
+.preset-swatch.active-preset { border-color: var(--dc-primary) !important; }
+.preset-dots { display: flex; gap: 3px; }
+.preset-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+/* ── Sub-group label ── */
+.color-subgroup-label {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--dc-text-muted);
+  border-bottom: 1px solid var(--dc-border);
+  padding-bottom: .35rem; margin-bottom: .75rem;
+  margin-top: 1.1rem;
+}
+.color-subgroup-label:first-child { margin-top: 0; }
+
+/* ── Live preview panel ── */
+.palette-preview {
+  border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--dc-border);
+  display: flex; height: 200px;
+  font-size: .72rem;
+}
+.pp-sidebar {
+  width: 140px; flex-shrink: 0;
+  padding: .75rem 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pp-brand {
+  padding: .4rem .75rem .6rem;
+  font-weight: 700; font-size: .8rem;
+  border-bottom: 1px solid;
+  margin-bottom: .3rem;
+}
+.pp-nav { padding: .32rem .75rem; border-radius: 0; display: flex; align-items: center; gap: .4rem; }
+.pp-nav.pp-active { font-weight: 600; }
+.pp-nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; }
+.pp-nav.pp-active .pp-nav-dot { opacity: 1; }
+.pp-content {
+  flex: 1; padding: .9rem;
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.pp-card {
+  border-radius: 8px; padding: .6rem .75rem;
+  border: 1px solid;
+  font-size: .7rem;
+}
+.pp-card-title { font-weight: 600; margin-bottom: .35rem; font-size: .75rem; }
+.pp-badges { display: flex; flex-wrap: wrap; gap: .3rem; }
+.pp-badge {
+  padding: .18em .55em; border-radius: 5px;
+  font-size: .68rem; font-weight: 700; color: #fff;
+}
+.pp-btn {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .25em .7em; border-radius: 6px;
+  font-size: .68rem; font-weight: 600; color: #fff; border: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" id="sysForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <!-- ── Identidade ───────────────────────────────────────── -->
+  <div class="sys-section">
+    <div class="sys-section-title"><i class="bi bi-building-fill-gear"></i>{{ _('Identidade da Clínica') }}</div>
+
+    <div class="row g-3 align-items-start">
+      <div class="col-md-5">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Nome da Aplicação') }}</label>
+        <input type="text" name="app_name" class="form-control"
+               value="{{ settings.app_name }}"
+               placeholder="DentalCare Pro"
+               style="font-size:.95rem;font-weight:600">
+        <div class="form-text">{{ _('Aparece no título da página e na barra lateral.') }}</div>
+      </div>
+
+      <div class="col-md-7">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Logótipo') }}</label>
+        <div class="logo-preview-wrap">
+          <div class="logo-preview-box" id="logoPreviewBox">
+            {% if settings.app_logo %}
+              <img src="{{ url_for('superadmin.logo_file', filename=settings.app_logo) }}"
+                   id="logoPreview" alt="Logo">
+            {% else %}
+              <i class="bi bi-heart-pulse-fill no-logo" id="logoPreview"></i>
+            {% endif %}
+          </div>
+          <div>
+            <input type="file" name="app_logo" id="logoInput" accept="image/*"
+                   class="form-control form-control-sm mb-2" style="max-width:280px">
+            <div class="form-text">{{ _('PNG, JPG, SVG ou WebP · máx. 2 MB') }}</div>
+            {% if settings.app_logo %}
+            <div class="mt-2">
+              <input type="hidden" name="remove_logo" id="removeLogoField" value="">
+              <button type="button" class="btn btn-sm btn-outline-danger"
+                      onclick="document.getElementById('removeLogoField').value='1';document.getElementById('sysForm').submit()">
+                <i class="bi bi-trash3-fill me-1"></i>{{ _('Remover logótipo') }}
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Configurações Clínicas ──────────────────────────── -->
+  <div class="sys-section">
+    <div class="sys-section-title"><i class="bi bi-hospital-fill"></i>{{ _('Configurações Clínicas') }}</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-image-fill me-1"></i>{{ _('Tamanho máximo de radiografias (MB)') }}
+        </label>
+        <div class="input-group input-group-sm" style="max-width:180px">
+          <input type="number" name="xray_max_mb" class="form-control"
+                 value="{{ settings.xray_max_mb }}" min="1" max="200" step="1">
+          <span class="input-group-text">MB</span>
+        </div>
+        <div class="form-text">{{ _('Entre 1 e 200 MB por ficheiro. Padrão: 10 MB.') }}</div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-receipt-cutoff me-1" style="color:var(--dc-primary)"></i>{{ _('Tamanho máximo de faturas de stock (MB)') }}
+        </label>
+        <div class="input-group input-group-sm" style="max-width:180px">
+          <input type="number" name="stock_invoice_max_mb" class="form-control"
+                 value="{{ settings.stock_invoice_max_mb }}" min="1" max="200" step="1">
+          <span class="input-group-text">MB</span>
+        </div>
+        <div class="form-text">{{ _('Tamanho máximo por fatura de compra (PDF/imagem). Padrão: 5 MB.') }}</div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-exclamation-triangle-fill me-1" style="color:var(--dc-danger)"></i>{{ _('Majoração de Urgência') }} (%)
+        </label>
+        <div class="input-group input-group-sm" style="max-width:180px">
+          <input type="number" name="urgency_surcharge" class="form-control"
+                 value="{{ settings.urgency_surcharge }}" min="0" max="500" step="1"
+                 id="urgencySurchargeInput">
+          <span class="input-group-text">%</span>
+        </div>
+        <div class="form-text">{{ _('Percentagem adicionada ao preço dos tratamentos em consultas de urgência. Padrão: 30') }}%.</div>
+        <div class="mt-2 p-2 rounded-2" style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);font-size:.75rem;color:var(--dc-danger)">
+          <i class="bi bi-info-circle-fill me-1"></i>
+          {{ _('Exemplo: tratamento de 1 000 Kz numa urgência com 30') }}% → 1 300 Kz
+          <span id="urgencyExampleVal" class="fw-600"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Paleta de Cores ──────────────────────────────────── -->
+  <div class="sys-section">
+    <div class="sys-section-title"><i class="bi bi-palette-fill"></i>{{ _('Paleta de Cores') }}</div>
+
+    <!-- Tabs -->
+    <div class="d-flex gap-0 mb-0" style="border-bottom:1px solid var(--dc-border)">
+      <div class="theme-tab active" data-tab="dark" onclick="switchTab('dark')">
+        <i class="bi bi-moon-stars-fill me-1"></i>{{ _('Tema Escuro') }}
+      </div>
+      <div class="theme-tab" data-tab="light" onclick="switchTab('light')">
+        <i class="bi bi-sun-fill me-1"></i>{{ _('Tema Claro') }}
+      </div>
+    </div>
+
+    <!-- ─── DARK PANEL ─── -->
+    <div class="theme-panel active" id="panel-dark"
+         style="border:1px solid var(--dc-border);border-top:none;border-radius:0 0 12px 12px;padding:1.4rem">
+
+      <!-- Presets -->
+      <p style="font-size:.75rem;color:var(--dc-text-muted);font-weight:600;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.07em">
+        <i class="bi bi-collection-fill me-1"></i>{{ _('Paletas pré-definidas') }}
+      </p>
+      <div class="presets-row" id="presets-dark">
+        <!-- Presets injected by JS -->
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <!-- Structure colors -->
+          <div class="color-subgroup-label"><i class="bi bi-layers-fill me-1"></i>{{ _('Estrutura') }}</div>
+          <div class="color-group">
+            {{ _color_picker('bg_dark',     _('Fundo'),        settings.bg_dark) }}
+            {{ _color_picker('sidebar_dark',_('Barra Lateral'), settings.sidebar_dark) }}
+            {{ _color_picker('card_dark',   _('Cartão'),       settings.card_dark) }}
+            {{ _color_picker('border_dark', _('Borda'),        settings.border_dark) }}
+            {{ _color_picker('text_dark',   _('Texto'),        settings.text_dark) }}
+          </div>
+
+          <!-- Accent colors -->
+          <div class="color-subgroup-label"><i class="bi bi-droplet-fill me-1"></i>{{ _('Acentos') }}</div>
+          <div class="color-group">
+            {{ _color_picker('primary_dark', _('Principal'),   settings.primary_dark) }}
+            {{ _color_picker('success_dark', _('Sucesso'),     settings.success_dark) }}
+            {{ _color_picker('danger_dark',  _('Perigo'),      settings.danger_dark) }}
+            {{ _color_picker('warning_dark', _('Aviso'),       settings.warning_dark) }}
+          </div>
+        </div>
+
+        <!-- Live preview -->
+        <div class="col-lg-5">
+          <div class="color-subgroup-label" style="margin-top:0"><i class="bi bi-eye-fill me-1"></i>{{ _('Pré-visualização') }}</div>
+          <div class="palette-preview" id="pp-dark">
+            <div class="pp-sidebar" id="pp-d-sidebar">
+              <div class="pp-brand" id="pp-d-brand">
+                <i class="bi bi-heart-pulse-fill me-1"></i>Clínica
+              </div>
+              <div class="pp-nav pp-active" id="pp-d-active">
+                <span class="pp-nav-dot"></span>Dashboard
+              </div>
+              <div class="pp-nav" id="pp-d-nav1">
+                <span class="pp-nav-dot"></span>Pacientes
+              </div>
+              <div class="pp-nav" id="pp-d-nav2">
+                <span class="pp-nav-dot"></span>Sessões
+              </div>
+              <div class="pp-nav" id="pp-d-nav3">
+                <span class="pp-nav-dot"></span>Agenda
+              </div>
+            </div>
+            <div class="pp-content" id="pp-d-content">
+              <div class="pp-card" id="pp-d-card">
+                <div class="pp-card-title" id="pp-d-cardtext">Resumo Clínico</div>
+                <div class="pp-badges">
+                  <span class="pp-badge" id="pp-d-primary">Principal</span>
+                  <span class="pp-badge" id="pp-d-success">Sucesso</span>
+                  <span class="pp-badge" id="pp-d-danger">Perigo</span>
+                  <span class="pp-badge" id="pp-d-warning" style="color:#111">Aviso</span>
+                </div>
+              </div>
+              <div>
+                <button type="button" class="pp-btn" id="pp-d-btn">
+                  <i class="bi bi-plus-circle-fill"></i> Nova Sessão
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── LIGHT PANEL ─── -->
+    <div class="theme-panel" id="panel-light"
+         style="border:1px solid var(--dc-border);border-top:none;border-radius:0 0 12px 12px;padding:1.4rem">
+
+      <!-- Presets -->
+      <p style="font-size:.75rem;color:var(--dc-text-muted);font-weight:600;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.07em">
+        <i class="bi bi-collection-fill me-1"></i>{{ _('Paletas pré-definidas') }}
+      </p>
+      <div class="presets-row" id="presets-light">
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <!-- Structure colors -->
+          <div class="color-subgroup-label"><i class="bi bi-layers-fill me-1"></i>{{ _('Estrutura') }}</div>
+          <div class="color-group">
+            {{ _color_picker('bg_light',     _('Fundo'),        settings.bg_light) }}
+            {{ _color_picker('card_light',   _('Cartão'),       settings.card_light) }}
+            {{ _color_picker('border_light', _('Borda'),        settings.border_light) }}
+            {{ _color_picker('text_light',   _('Texto'),        settings.text_light) }}
+          </div>
+
+          <!-- Accent colors -->
+          <div class="color-subgroup-label"><i class="bi bi-droplet-fill me-1"></i>{{ _('Acentos') }}</div>
+          <div class="color-group">
+            {{ _color_picker('primary_light', _('Principal'),   settings.primary_light) }}
+            {{ _color_picker('success_light', _('Sucesso'),     settings.success_light) }}
+            {{ _color_picker('danger_light',  _('Perigo'),      settings.danger_light) }}
+            {{ _color_picker('warning_light', _('Aviso'),       settings.warning_light) }}
+          </div>
+        </div>
+
+        <!-- Live preview light -->
+        <div class="col-lg-5">
+          <div class="color-subgroup-label" style="margin-top:0"><i class="bi bi-eye-fill me-1"></i>{{ _('Pré-visualização') }}</div>
+          <div class="palette-preview" id="pp-light">
+            <div class="pp-sidebar" id="pp-l-sidebar">
+              <div class="pp-brand" id="pp-l-brand">
+                <i class="bi bi-heart-pulse-fill me-1"></i>Clínica
+              </div>
+              <div class="pp-nav pp-active" id="pp-l-active">
+                <span class="pp-nav-dot"></span>Dashboard
+              </div>
+              <div class="pp-nav" id="pp-l-nav1">
+                <span class="pp-nav-dot"></span>Pacientes
+              </div>
+              <div class="pp-nav" id="pp-l-nav2">
+                <span class="pp-nav-dot"></span>Sessões
+              </div>
+            </div>
+            <div class="pp-content" id="pp-l-content">
+              <div class="pp-card" id="pp-l-card">
+                <div class="pp-card-title" id="pp-l-cardtext">Resumo Clínico</div>
+                <div class="pp-badges">
+                  <span class="pp-badge" id="pp-l-primary">Principal</span>
+                  <span class="pp-badge" id="pp-l-success">Sucesso</span>
+                  <span class="pp-badge" id="pp-l-danger">Perigo</span>
+                  <span class="pp-badge" id="pp-l-warning" style="color:#111">Aviso</span>
+                </div>
+              </div>
+              <div>
+                <button type="button" class="pp-btn" id="pp-l-btn">
+                  <i class="bi bi-plus-circle-fill"></i> Nova Sessão
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Guardar ───────────────────────────────────────────── -->
+  <div class="d-flex gap-2 justify-content-end">
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+      {{ _('Cancelar') }}
+    </a>
+    <button type="submit" class="btn btn-primary px-4">
+      <i class="bi bi-floppy-fill me-2"></i>{{ _('Guardar Alterações') }}
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% macro _color_picker(name, label, value) %}
+<div class="color-item">
+  <label>{{ label }}</label>
+  <div class="color-picker-wrap">
+    <input type="color" id="cp_{{ name }}" value="{{ value }}"
+           oninput="syncHex('{{ name }}', this.value); updatePreview()">
+    <input type="text" id="hex_{{ name }}" name="{{ name }}"
+           value="{{ value }}" maxlength="7"
+           oninput="syncColor('{{ name }}', this.value)">
+  </div>
+</div>
+{% endmacro %}
+
+{% block extra_js %}
+<script>
+/* ── Preset palettes ──────────────────────────────────────────────── */
+var PRESETS_DARK = [
+  { id:'carbon',   name:'Carbon',   bg:'#111111', sidebar:'#181818', card:'#1e1e1e', border:'#2d2d2d', text:'#d4d4d4', primary:'#14b8a6', success:'#22c55e', danger:'#f87171', warning:'#fbbf24' },
+  { id:'midnight', name:'Midnight', bg:'#090912', sidebar:'#0d0d1a', card:'#12121f', border:'#1e1e35', text:'#b8c0d8', primary:'#818cf8', success:'#34d399', danger:'#f87171', warning:'#fbbf24' },
+  { id:'forest',   name:'Forest',   bg:'#0a110a', sidebar:'#0f170f', card:'#141e14', border:'#223022', text:'#c8e0c8', primary:'#4ade80', success:'#86efac', danger:'#fca5a5', warning:'#fde68a' },
+  { id:'crimson',  name:'Crimson',  bg:'#110a0a', sidebar:'#180d0d', card:'#1e1212', border:'#382020', text:'#e0c8c8', primary:'#f87171', success:'#4ade80', danger:'#ef4444', warning:'#fbbf24' },
+  { id:'slate',    name:'Slate',    bg:'#0b0e14', sidebar:'#11151e', card:'#161c28', border:'#252d40', text:'#c8d0e4', primary:'#7c3aed', success:'#22c55e', danger:'#f87171', warning:'#fbbf24' },
+  { id:'espresso', name:'Espresso', bg:'#0e0b09', sidebar:'#161210', card:'#1c1714', border:'#2e2520', text:'#e0d0c0', primary:'#d97706', success:'#22c55e', danger:'#f87171', warning:'#fbbf24' },
+  { id:'nord',     name:'Nord',     bg:'#0f111a', sidebar:'#161924', card:'#1e2130', border:'#2d3248', text:'#c8d4e8', primary:'#5e81ac', success:'#a3be8c', danger:'#bf616a', warning:'#ebcb8b' },
+];
+var PRESETS_LIGHT = [
+  { id:'cloud',    name:'Cloud',    bg:'#f0f4f8', card:'#ffffff', border:'#d1dce8', text:'#334155', primary:'#1976d2', success:'#00875a', danger:'#d32f2f', warning:'#e65100' },
+  { id:'stone',    name:'Stone',    bg:'#f5f5f4', card:'#ffffff', border:'#d6d3d1', text:'#292524', primary:'#14b8a6', success:'#059669', danger:'#dc2626', warning:'#d97706' },
+  { id:'rose',     name:'Rose',     bg:'#fff1f2', card:'#ffffff', border:'#fecdd3', text:'#1e1b4b', primary:'#e11d48', success:'#059669', danger:'#dc2626', warning:'#d97706' },
+  { id:'sage',     name:'Sage',     bg:'#f0fdf4', card:'#ffffff', border:'#bbf7d0', text:'#14532d', primary:'#16a34a', success:'#4ade80', danger:'#f87171', warning:'#fbbf24' },
+];
+
+/* ── Inject preset buttons ───────────────────────────────────────── */
+function renderPresets(containerId, presets, suffix) {
+  var wrap = document.getElementById(containerId);
+  presets.forEach(function(p) {
+    var btn = document.createElement('div');
+    btn.className = 'preset-swatch';
+    btn.id = 'ps_' + p.id + '_' + suffix;
+    btn.style.background = p.bg;
+    btn.style.color      = p.text;
+    btn.style.borderColor = p.border;
+    btn.innerHTML =
+      '<span class="preset-dots">' +
+        '<span class="preset-dot" style="background:' + p.primary + '"></span>' +
+        '<span class="preset-dot" style="background:' + p.success + '"></span>' +
+        '<span class="preset-dot" style="background:' + p.danger  + '"></span>' +
+      '</span>' +
+      p.name;
+    btn.addEventListener('click', function() { applyPreset(p, suffix); });
+    wrap.appendChild(btn);
+  });
+}
+
+function applyPreset(p, suffix) {
+  var map = suffix === 'dark'
+    ? {bg:'bg', sidebar:'sidebar', card:'card', border:'border', text:'text',
+       primary:'primary', success:'success', danger:'danger', warning:'warning'}
+    : {bg:'bg', card:'card', border:'border', text:'text',
+       primary:'primary', success:'success', danger:'danger', warning:'warning'};
+
+  Object.keys(map).forEach(function(k) {
+    if (p[k] === undefined) return;
+    var key = map[k] + '_' + suffix;
+    var cp  = document.getElementById('cp_'  + key);
+    var hex = document.getElementById('hex_' + key);
+    if (cp)  cp.value  = p[k];
+    if (hex) hex.value = p[k];
+  });
+
+  /* Mark active preset */
+  document.querySelectorAll('[id^="ps_"][id$="_' + suffix + '"]').forEach(function(el) {
+    el.classList.remove('active-preset');
+  });
+  document.getElementById('ps_' + p.id + '_' + suffix).classList.add('active-preset');
+
+  updatePreview();
+}
+
+/* ── Sync helpers ────────────────────────────────────────────────── */
+function syncHex(name, val) {
+  document.getElementById('hex_' + name).value = val;
+}
+function syncColor(name, val) {
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    document.getElementById('cp_' + name).value = val;
+    updatePreview();
+  }
+}
+
+/* ── Live preview ────────────────────────────────────────────────── */
+function _v(name) {
+  var el = document.getElementById('hex_' + name);
+  return el ? el.value : '';
+}
+
+function updatePreview() {
+  /* Dark preview */
+  var dBg      = _v('bg_dark');
+  var dSidebar = _v('sidebar_dark');
+  var dCard    = _v('card_dark');
+  var dBorder  = _v('border_dark');
+  var dText    = _v('text_dark');
+  var dPrim    = _v('primary_dark');
+  var dSucc    = _v('success_dark');
+  var dDang    = _v('danger_dark');
+  var dWarn    = _v('warning_dark');
+
+  function _s(id, style) { var el=document.getElementById(id); if(el) Object.assign(el.style, style); }
+
+  _s('pp-dark',      { background: dBg });
+  _s('pp-d-sidebar', { background: dSidebar, color: dText, borderRight: '1px solid ' + dBorder });
+  _s('pp-d-brand',   { borderBottomColor: dBorder, color: dText });
+  _s('pp-d-active',  { background: dPrim + '22', color: dPrim });
+  _s('pp-d-nav1',    { color: dText + 'aa' });
+  _s('pp-d-nav2',    { color: dText + 'aa' });
+  _s('pp-d-nav3',    { color: dText + 'aa' });
+  _s('pp-d-content', { background: dBg });
+  _s('pp-d-card',    { background: dCard, borderColor: dBorder, color: dText });
+  _s('pp-d-cardtext',{ color: dText });
+  _s('pp-d-primary', { background: dPrim });
+  _s('pp-d-success', { background: dSucc });
+  _s('pp-d-danger',  { background: dDang });
+  _s('pp-d-warning', { background: dWarn });
+  _s('pp-d-btn',     { background: dPrim });
+
+  /* Light preview */
+  var lBg      = _v('bg_light');
+  var lCard    = _v('card_light');
+  var lBorder  = _v('border_light');
+  var lText    = _v('text_light');
+  var lPrim    = _v('primary_light');
+  var lSucc    = _v('success_light');
+  var lDang    = _v('danger_light');
+  var lWarn    = _v('warning_light');
+
+  _s('pp-light',     { background: lBg });
+  _s('pp-l-sidebar', { background: lCard, color: lText, borderRight: '1px solid ' + lBorder });
+  _s('pp-l-brand',   { borderBottomColor: lBorder, color: lText });
+  _s('pp-l-active',  { background: lPrim + '22', color: lPrim });
+  _s('pp-l-nav1',    { color: lText + '88' });
+  _s('pp-l-nav2',    { color: lText + '88' });
+  _s('pp-l-content', { background: lBg });
+  _s('pp-l-card',    { background: lCard, borderColor: lBorder, color: lText });
+  _s('pp-l-cardtext',{ color: lText });
+  _s('pp-l-primary', { background: lPrim });
+  _s('pp-l-success', { background: lSucc });
+  _s('pp-l-danger',  { background: lDang });
+  _s('pp-l-warning', { background: lWarn });
+  _s('pp-l-btn',     { background: lPrim });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.theme-tab').forEach(function(t)  { t.classList.remove('active'); });
+  document.querySelectorAll('.theme-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+/* Urgency surcharge live example */
+var urgencyInput = document.getElementById('urgencySurchargeInput');
+var urgencyExample = document.getElementById('urgencyExampleVal');
+if (urgencyInput && urgencyExample) {
+  function updateUrgencyExample() {
+    var pct = parseFloat(urgencyInput.value) || 0;
+    var result = (1000 * (1 + pct / 100)).toFixed(2);
+    urgencyExample.textContent = '→ ' + result + ' Kz';
+  }
+  urgencyInput.addEventListener('input', updateUrgencyExample);
+  updateUrgencyExample();
+}
+
+/* Logo live preview */
+document.getElementById('logoInput').addEventListener('change', function() {
+  var file = this.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('logoPreviewBox').innerHTML =
+      '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:contain">';
+  };
+  reader.readAsDataURL(file);
+});
+
+/* Init on load */
+renderPresets('presets-dark',  PRESETS_DARK,  'dark');
+renderPresets('presets-light', PRESETS_LIGHT, 'light');
+updatePreview();
+</script>
+{% endblock %}

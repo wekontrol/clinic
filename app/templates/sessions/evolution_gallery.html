@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Galeria de Evolução') }} — {{ patient.full_name }}{% endblock %}
+{% block page_title %}<i class="bi bi-images me-2"></i>{{ _('Galeria de Evolução') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.evo-slider-wrap { position:relative;overflow:hidden;border-radius:10px;user-select:none; }
+.evo-slider-before { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover; }
+.evo-slider-after { position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;clip-path:inset(0 50% 0 0); }
+.evo-slider-divider { position:absolute;top:0;bottom:0;width:3px;background:#fff;cursor:ew-resize;z-index:10;left:50%; }
+.evo-slider-divider::before { content:'⇄';position:absolute;top:50%;transform:translate(-50%,-50%);background:#fff;color:#111;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.9rem;box-shadow:0 2px 6px rgba(0,0,0,.3); }
+.evo-photo-card { transition:.2s; }
+.evo-photo-card:hover { transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-1" style="color:var(--dc-text)">{{ _('Galeria de Evolução') }}</h4>
+    <small style="color:var(--dc-text-muted)">
+      <a href="{{ url_for('patients.detail', patient_id=patient.id) }}" style="color:var(--dc-primary)">{{ patient.full_name }}</a>
+    </small>
+  </div>
+  {% if can_upload %}
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+    <i class="bi bi-camera-fill me-1"></i>{{ _('Carregar Foto') }}
+  </button>
+  {% endif %}
+</div>
+
+<!-- Before / After Comparison Slider (shown when at least 1 before and 1 after exist) -->
+{% if before and after %}
+<div class="dc-card p-4 mb-4">
+  <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-arrow-left-right me-2" style="color:var(--dc-primary)"></i>{{ _('Comparação Antes / Depois') }}</h6>
+  <div class="row g-3 align-items-center">
+    <div class="col-md-5">
+      <label class="form-label form-label-sm">{{ _('Foto Antes') }}</label>
+      <select id="sliderBefore" class="form-select form-select-sm mb-2">
+        {% for p in before %}
+        <option value="{{ url_for('main.serve_upload', filename=p.file_path) }}">{{ p.caption or p.uploaded_at.strftime('%d/%m/%Y') }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 text-center"><i class="bi bi-arrow-left-right fs-4" style="color:var(--dc-primary)"></i></div>
+    <div class="col-md-5">
+      <label class="form-label form-label-sm">{{ _('Foto Depois') }}</label>
+      <select id="sliderAfter" class="form-select form-select-sm mb-2">
+        {% for p in after %}
+        <option value="{{ url_for('main.serve_upload', filename=p.file_path) }}">{{ p.caption or p.uploaded_at.strftime('%d/%m/%Y') }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12">
+      <div class="evo-slider-wrap" id="sliderWrap" style="height:320px;background:var(--dc-card-bg)">
+        <img id="sliderBeforeImg" src="" alt="{{ _('Antes') }}" class="evo-slider-before">
+        <img id="sliderAfterImg" src="" alt="{{ _('Depois') }}" class="evo-slider-after">
+        <div class="evo-slider-divider" id="sliderDivider"></div>
+      </div>
+      <p class="small mt-2 mb-0 text-center" style="color:var(--dc-text-muted)">{{ _('Arraste o divisor para comparar') }}</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Gallery grid -->
+<div class="row g-3">
+  <!-- Before photos -->
+  <div class="col-md-6">
+    <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-arrow-left-circle-fill me-2 text-info"></i>{{ _('Antes') }} <span class="badge bg-secondary ms-1">{{ before|length }}</span></h6>
+    <div class="row g-2">
+      {% for p in before %}
+      <div class="col-6">
+        <div class="dc-card p-0 overflow-hidden evo-photo-card" style="position:relative">
+          <a href="{{ url_for('main.serve_upload', filename=p.file_path) }}" target="_blank">
+            <img src="{{ url_for('main.serve_upload', filename=p.file_path) }}" alt="{{ p.caption or _('Antes') }}"
+                 style="width:100%;height:140px;object-fit:cover;display:block">
+          </a>
+          <div class="p-2">
+            <div class="small text-truncate" style="color:var(--dc-text);font-size:.78rem">{{ p.caption or '—' }}</div>
+            <div style="color:var(--dc-text-muted);font-size:.7rem">{{ p.uploaded_at.strftime('%d/%m/%Y') if p.uploaded_at else '' }}</div>
+          </div>
+          {% if can_upload %}
+          <form method="POST" action="{{ url_for('sessions.delete_evolution_photo', patient_id=patient.id, photo_id=p.id) }}"
+                style="position:absolute;top:4px;right:4px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm py-0 px-1" style="font-size:.65rem" onclick="return confirm('{{ _('Remover foto?') }}')">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="col-12"><small class="text-muted">{{ _('Sem fotos "antes" carregadas.') }}</small></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- After photos -->
+  <div class="col-md-6">
+    <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-arrow-right-circle-fill me-2 text-success"></i>{{ _('Depois') }} <span class="badge bg-secondary ms-1">{{ after|length }}</span></h6>
+    <div class="row g-2">
+      {% for p in after %}
+      <div class="col-6">
+        <div class="dc-card p-0 overflow-hidden evo-photo-card" style="position:relative">
+          <a href="{{ url_for('main.serve_upload', filename=p.file_path) }}" target="_blank">
+            <img src="{{ url_for('main.serve_upload', filename=p.file_path) }}" alt="{{ p.caption or _('Depois') }}"
+                 style="width:100%;height:140px;object-fit:cover;display:block">
+          </a>
+          <div class="p-2">
+            <div class="small text-truncate" style="color:var(--dc-text);font-size:.78rem">{{ p.caption or '—' }}</div>
+            <div style="color:var(--dc-text-muted);font-size:.7rem">{{ p.uploaded_at.strftime('%d/%m/%Y') if p.uploaded_at else '' }}</div>
+          </div>
+          {% if can_upload %}
+          <form method="POST" action="{{ url_for('sessions.delete_evolution_photo', patient_id=patient.id, photo_id=p.id) }}"
+                style="position:absolute;top:4px;right:4px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm py-0 px-1" style="font-size:.65rem" onclick="return confirm('{{ _('Remover foto?') }}')">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="col-12"><small class="text-muted">{{ _('Sem fotos "depois" carregadas.') }}</small></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+{% if can_upload %}
+<div class="modal fade" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background:var(--dc-card-bg);border:1px solid var(--dc-border)">
+      <div class="modal-header" style="border-color:var(--dc-border)">
+        <h6 class="modal-title" style="color:var(--dc-text)"><i class="bi bi-camera-fill me-2"></i>{{ _('Carregar Fotografia') }}</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('sessions.upload_evolution_photo', patient_id=patient.id) }}" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">{{ _('Tipo de Foto') }}</label>
+            <select name="photo_type" class="form-select">
+              <option value="before">{{ _('Antes') }}</option>
+              <option value="after">{{ _('Depois') }}</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _('Ficheiro (JPG/PNG)') }}</label>
+            <input type="file" name="file" class="form-control" accept=".jpg,.jpeg,.png" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ _('Legenda') }}</label>
+            <input type="text" name="caption" class="form-control" placeholder="{{ _('Opcional...') }}">
+          </div>
+        </div>
+        <div class="modal-footer" style="border-color:var(--dc-border)">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ _('Cancelar') }}</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload me-1"></i>{{ _('Carregar') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if before and after %}
+<script>
+(function() {
+  var beforeSel = document.getElementById('sliderBefore');
+  var afterSel = document.getElementById('sliderAfter');
+  var beforeImg = document.getElementById('sliderBeforeImg');
+  var afterImg = document.getElementById('sliderAfterImg');
+  var divider = document.getElementById('sliderDivider');
+  var wrap = document.getElementById('sliderWrap');
+
+  function updateImages() {
+    if (beforeSel) beforeImg.src = beforeSel.value;
+    if (afterSel) afterImg.src = afterSel.value;
+  }
+  updateImages();
+  if (beforeSel) beforeSel.addEventListener('change', updateImages);
+  if (afterSel) afterSel.addEventListener('change', updateImages);
+
+  // Drag slider
+  var dragging = false;
+  divider.addEventListener('mousedown', function() { dragging = true; });
+  document.addEventListener('mouseup', function() { dragging = false; });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var rect = wrap.getBoundingClientRect();
+    var x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    var pct = x / rect.width * 100;
+    divider.style.left = pct + '%';
+    afterImg.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+  });
+  // Touch
+  divider.addEventListener('touchmove', function(e) {
+    var touch = e.touches[0];
+    var rect = wrap.getBoundingClientRect();
+    var x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+    var pct = x / rect.width * 100;
+    divider.style.left = pct + '%';
+    afterImg.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

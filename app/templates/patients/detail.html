@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.full_name }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-badge-fill me-2"></i>{{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <a href="{{ url_for('patients.index') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+  </a>
+  {% if current_user.role in ['superadmin','clinical_director','reception','dentist'] %}
+  <div class="d-flex gap-2 flex-wrap">
+    {% if current_user.role in ['superadmin','clinical_director','dentist'] %}
+    <a href="{{ url_for('sessions.new') }}?patient_id={{ patient.id }}"
+       class="btn btn-outline-info btn-sm">
+      <i class="bi bi-clipboard2-plus-fill me-1"></i>{{ _('Nova Sessão') }}
+    </a>
+    <a href="{{ url_for('sessions.evolution_gallery', patient_id=patient.id) }}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-images me-1"></i>{{ _('Galeria') }}
+    </a>
+    {% endif %}
+    <a href="{{ url_for('scheduling.new_appointment') }}?patient_id={{ patient.id }}"
+       class="btn btn-success btn-sm">
+      <i class="bi bi-calendar-plus-fill me-1"></i>{{ _('Agendar Consulta') }}
+    </a>
+    <a href="{{ url_for('patients.edit', patient_id=patient.id) }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-pencil-fill me-1"></i>{{ _('Editar') }}
+    </a>
+    {% if current_user.role in ['superadmin','clinical_director'] %}
+    <form method="POST" action="{{ url_for('patients.deactivate', patient_id=patient.id) }}"
+          onsubmit="return confirm('{{ _('Desativar este paciente?') }}')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-person-dash-fill me-1"></i>{{ _('Desativar') }}
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('patients.delete', patient_id=patient.id) }}"
+          onsubmit="return confirm('{{ _('ATENÇÃO: Esta acção é irreversível! Todos os dados clínicos, sessões e agendamentos deste paciente serão apagados permanentemente. Confirma?') }}')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger btn-sm">
+        <i class="bi bi-trash3-fill me-1"></i>{{ _('Eliminar') }}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if new_creds %}
+<div class="alert alert-warning border border-warning mb-4 p-3" role="alert"
+     style="border-radius:12px;background:rgba(229,164,48,.12)">
+  <h6 class="alert-heading mb-2">
+    <i class="bi bi-key-fill me-2"></i>{{ _('Credenciais de Acesso Geradas — Guarde Agora') }}
+  </h6>
+  <p class="mb-2" style="font-size:.85rem">
+    {{ _('Foi criada automaticamente uma conta de acesso para este paciente. Entregue estas credenciais ao paciente para que possa iniciar sessão e aceder ao seu portal.') }}
+  </p>
+  <div class="d-flex gap-4 flex-wrap">
+    <div>
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dc-text-muted)">{{ _('Utilizador') }}</div>
+      <code style="font-size:1rem;color:var(--dc-primary)">{{ new_creds.username }}</code>
+    </div>
+    <div>
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dc-text-muted)">{{ _('Senha Temporária') }}</div>
+      <code style="font-size:1rem;color:var(--dc-warning)">{{ new_creds.password }}</code>
+    </div>
+  </div>
+  <p class="mt-2 mb-0" style="font-size:.78rem;color:var(--dc-text-muted)">
+    <i class="bi bi-info-circle me-1"></i>{{ _('Esta mensagem só aparece uma vez. O paciente deverá alterar a senha após o primeiro acesso.') }}
+  </p>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <!-- Profile card -->
+  <div class="col-lg-4">
+    <div class="dc-card text-center mb-4">
+      {% if patient.photo_path %}
+      <img src="{{ url_for('main.serve_upload', filename=patient.photo_path) }}"
+           alt="{{ patient.full_name }}"
+           style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--dc-border);margin-bottom:1rem">
+      {% else %}
+      <div style="width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--dc-primary),var(--dc-primary-d));display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff;margin:0 auto 1rem">
+        {{ patient.full_name[:2].upper() }}
+      </div>
+      {% endif %}
+      <h5 style="color:var(--dc-white)">{{ patient.full_name }}</h5>
+      {% if patient.date_of_birth %}
+      <div style="color:var(--dc-text-muted);font-size:.82rem">
+        {{ patient.date_of_birth.strftime('%d/%m/%Y') }}
+        {% set today = now_date %}
+        {% if patient.date_of_birth %}
+        ({{ ((today - patient.date_of_birth).days // 365) }} {{ _('anos') }})
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if patient.assigned_dentist %}
+      <div class="mt-2">
+        <span class="badge" style="background:rgba(0,217,126,.15);color:var(--dc-success)">
+          <i class="bi bi-person-fill me-1"></i>{{ patient.assigned_dentist.full_name }}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Contact info -->
+    <div class="dc-card mb-4">
+      <div class="dc-section-title mb-3"><i class="bi bi-telephone-fill me-2"></i>{{ _('Contacto') }}</div>
+      <div class="info-row"><span class="info-label">{{ _('Telefone') }}</span><span>{{ patient.phone or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Email') }}</span><span>{{ patient.email or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Doc. Identificação') }}</span><span>{{ patient.id_doc or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Morada') }}</span>
+        <span>{{ patient.address or '—' }}{% if patient.city %}, {{ patient.city }}{% endif %}</span>
+      </div>
+      <div class="info-row"><span class="info-label">{{ _('Gênero') }}</span><span>{{ patient.gender or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Nacionalidade') }}</span><span>{{ patient.nationality or '—' }}</span></div>
+    </div>
+
+    <!-- Emergency contact & Insurance -->
+    <div class="dc-card">
+      <div class="dc-section-title mb-3"><i class="bi bi-shield-plus-fill me-2"></i>{{ _('Seguro & Emergência') }}</div>
+      <div class="info-row"><span class="info-label">{{ _('Seguradora') }}</span><span>{{ patient.insurance_provider or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Apólice') }}</span><span>{{ patient.insurance_number or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Cont. Emergência') }}</span><span>{{ patient.emergency_contact_name or '—' }}</span></div>
+      <div class="info-row"><span class="info-label">{{ _('Tel. Emergência') }}</span><span>{{ patient.emergency_contact_phone or '—' }}</span></div>
+    </div>
+  </div>
+
+  <!-- Clinical content -->
+  <div class="col-lg-8">
+    <!-- Anamnesis -->
+    <div class="dc-card mb-4">
+      <div class="dc-section-title mb-3"><i class="bi bi-clipboard2-pulse-fill me-2"></i>{{ _('Anamnese') }}</div>
+      <ul class="nav nav-tabs mb-3">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#anam-pt" type="button">🇵🇹 PT</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#anam-en" type="button">🇬🇧 EN</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#anam-es" type="button">🇪🇸 ES</button></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="anam-pt">
+          <p style="font-size:.9rem">{{ patient.anamnesis_pt or _('Não registada') }}</p>
+        </div>
+        <div class="tab-pane fade" id="anam-en">
+          <p style="font-size:.9rem">{{ patient.anamnesis_en or _('Not recorded') }}</p>
+        </div>
+        <div class="tab-pane fade" id="anam-es">
+          <p style="font-size:.9rem">{{ patient.anamnesis_es or _('No registrado') }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Allergies, Medications & Chronic Conditions row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="dc-card h-100">
+          <div class="dc-section-title mb-2" style="color:var(--dc-danger)">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ _('Alergias') }}
+          </div>
+          {% if patient.allergies_pt %}
+          <p style="font-size:.88rem;color:var(--dc-danger)">{{ patient.allergies_pt }}</p>
+          {% else %}
+          <p style="font-size:.88rem;color:var(--dc-text-muted)">{{ _('Nenhuma registada') }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="dc-card h-100">
+          <div class="dc-section-title mb-2" style="color:var(--dc-warning)">
+            <i class="bi bi-capsule-pill me-2"></i>{{ _('Medicação Atual') }}
+          </div>
+          {% if patient.medications_pt %}
+          <p style="font-size:.88rem">{{ patient.medications_pt }}</p>
+          {% else %}
+          <p style="font-size:.88rem;color:var(--dc-text-muted)">{{ _('Nenhuma registada') }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="dc-card h-100">
+          <div class="dc-section-title mb-2" style="color:#58a6ff">
+            <i class="bi bi-heart-pulse-fill me-2"></i>{{ _('Doenças Crónicas') }}
+          </div>
+          {% if patient.chronic_conditions_pt %}
+          <p style="font-size:.88rem">{{ patient.chronic_conditions_pt }}</p>
+          {% else %}
+          <p style="font-size:.88rem;color:var(--dc-text-muted)">{{ _('Nenhuma registada') }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Care Team -->
+    {% if current_user.role in ['superadmin','clinical_director','dentist'] %}
+    <div class="dc-card mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="dc-section-title mb-0">
+          <i class="bi bi-people-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Equipa Clínica') }}
+        </div>
+        {% if current_user.role in ['superadmin','clinical_director','dentist'] and available_dentists %}
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#careTeamModal">
+          <i class="bi bi-person-plus-fill me-1"></i>{{ _('Partilhar Acesso') }}
+        </button>
+        {% endif %}
+      </div>
+
+      <!-- Current assigned dentist -->
+      {% if patient.assigned_dentist %}
+      <div class="d-flex align-items-center gap-3 py-2 border-bottom" style="border-color:var(--dc-border)!important">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--dc-primary),var(--dc-primary-d));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:.85rem;flex-shrink:0">
+          {{ patient.assigned_dentist.full_name[:2].upper() }}
+        </div>
+        <div class="flex-grow-1">
+          <div style="font-weight:600;color:var(--dc-white);font-size:.88rem">{{ patient.assigned_dentist.full_name }}</div>
+          <div style="font-size:.73rem;color:var(--dc-text-muted)">{{ _('Dentista Principal') }}</div>
+        </div>
+        <span class="badge bg-success">{{ _('Principal') }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Care team entries -->
+      {% if care_team_entries %}
+      {% for entry in care_team_entries %}
+      <div class="d-flex align-items-center gap-3 py-2 {% if not loop.last %}border-bottom{% endif %}" style="border-color:var(--dc-border)!important">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(20,184,166,.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--dc-primary);font-size:.85rem;flex-shrink:0">
+          {{ entry.dentist.full_name[:2].upper() }}
+        </div>
+        <div class="flex-grow-1">
+          <div style="font-weight:600;color:var(--dc-white);font-size:.88rem">{{ entry.dentist.full_name }}</div>
+          <div style="font-size:.73rem;color:var(--dc-text-muted)">
+            {{ _('Pedido por') }} {{ entry.requested_by.full_name }}
+            · {{ entry.created_at.strftime('%d/%m/%Y') if entry.created_at else '' }}
+          </div>
+          {% if entry.notes %}
+          <div style="font-size:.72rem;color:var(--dc-text-muted);font-style:italic">{{ entry.notes }}</div>
+          {% endif %}
+        </div>
+        <span class="badge bg-{{ entry.status_badge() }}">
+          {% if entry.status == 'pending' %}{{ _('Pendente') }}
+          {% elif entry.status == 'approved' %}{{ _('Aprovado') }}
+          {% else %}{{ _('Recusado') }}{% endif %}
+        </span>
+        {% if current_user.role in ['superadmin','clinical_director'] %}
+        <div class="d-flex gap-1">
+          {% if entry.status == 'pending' %}
+          <form method="POST" action="{{ url_for('patients.care_team_approve', patient_id=patient.id, entry_id=entry.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-success btn-sm py-0 px-2" title="{{ _('Aprovar') }}"><i class="bi bi-check-lg"></i></button>
+          </form>
+          <form method="POST" action="{{ url_for('patients.care_team_reject', patient_id=patient.id, entry_id=entry.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-warning btn-sm py-0 px-2" title="{{ _('Recusar') }}"><i class="bi bi-x-lg"></i></button>
+          </form>
+          {% endif %}
+          <form method="POST" action="{{ url_for('patients.care_team_remove', patient_id=patient.id, entry_id=entry.id) }}" class="d-inline"
+                onsubmit="return confirm('{{ _('Remover dentista da equipa?') }}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger btn-sm py-0 px-2" title="{{ _('Remover') }}"><i class="bi bi-trash-fill"></i></button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      {% if not patient.assigned_dentist %}
+      <div class="text-center py-3" style="color:var(--dc-text-muted);font-size:.88rem">
+        <i class="bi bi-people fs-3 d-block mb-2 opacity-50"></i>
+        {{ _('Nenhum dentista atribuído') }}
+      </div>
+      {% else %}
+      <div class="py-2" style="color:var(--dc-text-muted);font-size:.82rem">
+        <i class="bi bi-info-circle me-1"></i>{{ _('Nenhum outro dentista com acesso partilhado.') }}
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Care Team Request Modal -->
+    <div class="modal fade" id="careTeamModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--dc-card);border:1px solid var(--dc-border)">
+          <div class="modal-header" style="border-color:var(--dc-border)">
+            <h5 class="modal-title" style="color:var(--dc-white)">
+              <i class="bi bi-person-plus-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Partilhar Acesso do Paciente') }}
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" action="{{ url_for('patients.care_team_request', patient_id=patient.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+              <p style="font-size:.85rem;color:var(--dc-text-muted)">
+                <i class="bi bi-shield-lock-fill me-1 text-warning"></i>
+                {{ _('O pedido terá de ser aprovado pelo Diretor Clínico ou Superadmin antes de o dentista ter acesso.') }}
+              </p>
+              <div class="mb-3">
+                <label class="form-label">{{ _('Dentista a adicionar') }} <span class="text-danger">*</span></label>
+                <select name="dentist_id" class="form-select" required>
+                  <option value="">---</option>
+                  {% for d in available_dentists %}
+                  <option value="{{ d.id }}">{{ d.full_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">{{ _('Motivo / Notas') }}</label>
+                <textarea name="notes" class="form-control" rows="2" placeholder="{{ _('Opcional: descreva o motivo da partilha') }}"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer" style="border-color:var(--dc-border)">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-send-fill me-1"></i>{{ _('Enviar Pedido') }}
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ _('Cancelar') }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Session Timeline -->
+    <div class="dc-card">
+      <div class="dc-section-title mb-3"><i class="bi bi-clock-history me-2"></i>{{ _('Histórico de Sessões') }}</div>
+      {% if sessions %}
+      <div class="timeline">
+        {% for session in sessions %}
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--dc-primary)"></div>
+          <div class="timeline-content">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong style="color:var(--dc-white)">{{ session.session_code }}</strong>
+                <div style="color:var(--dc-text-muted);font-size:.8rem">
+                  <i class="bi bi-person-fill me-1"></i>{{ session.dentist.full_name if session.dentist else '—' }}
+                  &nbsp;·&nbsp;
+                  <i class="bi bi-calendar3 me-1"></i>{{ session.session_date.strftime('%d/%m/%Y %H:%M') if session.session_date else '—' }}
+                </div>
+                {% if session.chief_complaint %}
+                <div style="font-size:.83rem;margin-top:.25rem">{{ session.chief_complaint[:120] }}{% if session.chief_complaint|length > 120 %}…{% endif %}</div>
+                {% endif %}
+              </div>
+              <span class="badge bg-{% if session.status == 'closed' %}success{% elif session.status == 'in_progress' %}warning{% elif session.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                {{ session.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-4" style="color:var(--dc-text-muted)">
+        <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
+        {{ _('Nenhuma sessão clínica registada') }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.info-row {
+  display:flex; justify-content:space-between; padding:.4rem 0;
+  border-bottom:1px solid var(--dc-border); font-size:.85rem;
+}
+.info-row:last-child { border-bottom:none; }
+.info-label { color:var(--dc-text-muted); }
+.timeline { position:relative; padding-left:1.5rem; }
+.timeline::before {
+  content:''; position:absolute; left:6px; top:0; bottom:0;
+  width:2px; background:var(--dc-border);
+}
+.timeline-item { position:relative; margin-bottom:1.25rem; }
+.timeline-dot {
+  position:absolute; left:-1.5rem; top:3px;
+  width:12px; height:12px; border-radius:50%;
+  border:2px solid var(--dc-bg);
+}
+.timeline-content {
+  background:var(--dc-bg); border:1px solid var(--dc-border);
+  border-radius:8px; padding:.75rem 1rem;
+}
+</style>
+{% endblock %}

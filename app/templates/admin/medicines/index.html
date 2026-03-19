@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Medicamentos') }}{% endblock %}
+{% block page_title %}<i class="bi bi-capsule-pill me-2" style="color:var(--dc-primary)"></i>{{ _('Catálogo de Medicamentos') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.med-cards { display: none; }
+@media (max-width: 767px) {
+  .med-cards      { display: flex; flex-direction: column; gap: .6rem; }
+  .med-table-wrap { display: none; }
+}
+.med-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+}
+.med-card-icon {
+  width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20,184,166,.12); color: var(--dc-success); font-size: 1rem;
+}
+.med-card-body   { flex: 1; min-width: 0; }
+.med-card-name   { font-size: .93rem; font-weight: 600; color: var(--dc-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.med-card-meta   { font-size: .75rem; color: var(--dc-text-muted); margin-top: .25rem; display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center; }
+.med-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dc-page-header">
+  <div>
+    <h1>{{ _('Medicamentos') }}</h1>
+    <p>{{ _('Gestão do catálogo de medicamentos (trilingue)') }}</p>
+  </div>
+  {% if current_user.role in ['superadmin', 'clinical_director'] %}
+  <a href="{{ url_for('admin.new_medicine') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>{{ _('Novo Medicamento') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filter bar -->
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="{{ url_for('admin.medicines') }}" class="btn btn-sm {% if not request.args.get('inactive') %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ _('Ativos') }}
+  </a>
+  <a href="{{ url_for('admin.medicines', inactive=1) }}" class="btn btn-sm {% if request.args.get('inactive') %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ _('Todos') }}
+  </a>
+  <span class="ms-auto" style="font-size:.8rem;color:var(--dc-text-muted)">
+    {{ medicines.total }} {{ _('medicamento(s)') }}
+  </span>
+</div>
+
+{% if medicines.items %}
+
+<!-- ══ MOBILE CARDS ══ -->
+<div class="med-cards">
+  {% for m in medicines.items %}
+  <div class="med-card">
+    <!-- Icon -->
+    <div class="med-card-icon">
+      <i class="bi bi-capsule-pill"></i>
+    </div>
+
+    <!-- Body -->
+    <div class="med-card-body">
+      <div class="med-card-name">{{ m.name_pt }}</div>
+      {% if m.strength %}
+      <div style="font-size:.75rem;color:var(--dc-text-muted)">{{ m.strength }}</div>
+      {% endif %}
+      <div class="med-card-meta mt-1">
+        <span class="badge bg-{% if m.is_active %}success{% else %}secondary{% endif %}" style="font-size:.65rem">
+          {{ _('Ativo') if m.is_active else _('Inativo') }}
+        </span>
+        {% if m.dosage_form %}<span><i class="bi bi-prescription2"></i>{{ m.dosage_form }}</span>{% endif %}
+        {% if m.active_ingredient %}<span>{{ m.active_ingredient }}</span>{% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    {% if current_user.role in ['superadmin', 'clinical_director'] %}
+    <div class="med-card-actions">
+      <a href="{{ url_for('admin.edit_medicine', id=m.id) }}"
+         class="btn btn-sm btn-primary py-1 px-2" title="{{ _('Editar') }}">
+        <i class="bi bi-pencil-fill" style="font-size:.75rem"></i>
+      </a>
+      <form method="POST" action="{{ url_for('admin.toggle_medicine', id=m.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if m.is_active else 'success' }} py-1 px-2"
+                title="{{ _('Desativar') if m.is_active else _('Ativar') }}">
+          <i class="bi bi-toggle-{{ 'on' if m.is_active else 'toggle-off' }}" style="font-size:.75rem"></i>
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ══ DESKTOP TABLE ══ -->
+<div class="dc-card med-table-wrap">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>{{ _('Nome (PT)') }}</th>
+          <th>{{ _('EN') }}</th>
+          <th>{{ _('ES') }}</th>
+          <th>{{ _('Princípio Ativo') }}</th>
+          <th>{{ _('Forma') }}</th>
+          <th>{{ _('Estado') }}</th>
+          {% if current_user.role in ['superadmin', 'clinical_director'] %}
+          <th>{{ _('Ações') }}</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in medicines.items %}
+        <tr>
+          <td>
+            <div style="font-weight:500;color:var(--dc-white)">{{ m.name_pt }}</div>
+            {% if m.strength %}<div style="font-size:.75rem;color:var(--dc-text-muted)">{{ m.strength }}</div>{% endif %}
+          </td>
+          <td style="font-size:.85rem">{{ m.name_en }}</td>
+          <td style="font-size:.85rem">{{ m.name_es }}</td>
+          <td style="font-size:.85rem">{{ m.active_ingredient or '—' }}</td>
+          <td style="font-size:.85rem">{{ m.dosage_form or '—' }}</td>
+          <td>
+            <span class="badge bg-{% if m.is_active %}success{% else %}secondary{% endif %}">
+              {{ _('Ativo') if m.is_active else _('Inativo') }}
+            </span>
+          </td>
+          {% if current_user.role in ['superadmin', 'clinical_director'] %}
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('admin.edit_medicine', id=m.id) }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil-fill"></i>
+              </a>
+              <form method="POST" action="{{ url_for('admin.toggle_medicine', id=m.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if m.is_active else 'success' }}">
+                  <i class="bi bi-{{ 'toggle-on' if m.is_active else 'toggle-off' }}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if medicines.pages > 1 %}
+  <div class="d-flex justify-content-center mt-3">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% for page in medicines.iter_pages() %}
+          {% if page %}
+            <li class="page-item {% if page == medicines.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin.medicines', page=page) }}">{{ page }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Mobile pagination -->
+{% if medicines.pages > 1 %}
+<div class="d-flex justify-content-center mt-3 d-md-none">
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      {% for page in medicines.iter_pages() %}
+        {% if page %}
+          <li class="page-item {% if page == medicines.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.medicines', page=page) }}">{{ page }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+
+{% else %}
+<div class="dc-card text-center py-5" style="color:var(--dc-text-muted)">
+  <i class="bi bi-capsule fs-2 mb-2 d-block"></i>
+  {{ _('Nenhum medicamento encontrado') }}
+</div>
+{% endif %}
+{% endblock %}

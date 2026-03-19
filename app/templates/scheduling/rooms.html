@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Estado das Salas') }}{% endblock %}
+{% block page_title %}<i class="bi bi-door-open-fill me-2"></i>{{ _('Estado das Salas') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p style="color:var(--dc-text-muted);font-size:.85rem;margin:0">{{ _('Gerir o estado de disponibilidade de cada sala de tratamento') }}</p>
+  <a href="{{ url_for('scheduling.calendar') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-calendar3 me-1"></i>{{ _('Ver Agenda') }}
+  </a>
+</div>
+
+<div class="row g-4">
+  {% for room in rooms %}
+  <div class="col-md-6">
+    <div class="dc-card">
+      <!-- Room header -->
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="room-status-dot {{ room.status }}" style="width:20px;height:20px"></div>
+        <div>
+          <h5 class="mb-0" style="color:var(--dc-white)">{{ _('Sala') }} {{ room.number }} — {{ room.name }}</h5>
+          {% if room.status_updated_at %}
+          <div style="font-size:.75rem;color:var(--dc-text-muted)">
+            {{ _('Atualizado') }}: {{ room.status_updated_at.strftime('%d/%m/%Y %H:%M') }}
+            {% if room.status_updated_by %}
+            {{ _('por') }} {{ room.status_updated_by.full_name }}
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="ms-auto">
+          <span class="badge bg-{{ room.status_badge_class() }} fs-6">
+            <i class="bi {{ room.status_icon() }} me-1"></i>
+            {% if room.status == 'green' %}{{ _('Disponível') }}
+            {% elif room.status == 'yellow' %}{{ _('Em Uso') }}
+            {% elif room.status == 'red' %}{{ _('Emergência') }}
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      {% if room.status_note %}
+      <div class="alert alert-secondary p-2 mb-3" style="font-size:.82rem;background:var(--dc-bg);border-color:var(--dc-border)">
+        <i class="bi bi-chat-left-dots-fill me-1"></i>{{ room.status_note }}
+      </div>
+      {% endif %}
+
+      <!-- Status update form -->
+      {% if current_user.role in ['superadmin','clinical_director','reception','dentist'] %}
+      <form method="POST" action="{{ url_for('scheduling.update_room_status', room_id=room.id) }}">
+        {{ form.hidden_tag() }}
+        <input type="hidden" name="room_id" value="{{ room.id }}">
+        <div class="row g-2">
+          <div class="col-8">
+            <select name="status" class="form-select form-select-sm">
+              <option value="green" {% if room.status == 'green' %}selected{% endif %}>🟢 {{ _('Disponível') }}</option>
+              <option value="yellow" {% if room.status == 'yellow' %}selected{% endif %}>🟡 {{ _('Em Uso') }}</option>
+              <option value="red" {% if room.status == 'red' %}selected{% endif %}>🔴 {{ _('Emergência') }}</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <button type="submit" class="btn btn-sm btn-primary w-100">{{ _('Atualizar') }}</button>
+          </div>
+          <div class="col-12">
+            <input type="text" name="status_note" class="form-control form-control-sm"
+                   placeholder="{{ _('Nota opcional...') }}"
+                   value="{{ room.status_note or '' }}">
+          </div>
+        </div>
+      </form>
+      {% endif %}
+
+      <!-- Quick buttons -->
+      {% if current_user.role in ['superadmin','clinical_director','reception','dentist'] %}
+      <div class="d-flex gap-2 mt-3">
+        <form method="POST" action="{{ url_for('scheduling.update_room_status', room_id=room.id) }}" class="d-inline">
+          {{ form.hidden_tag() }}
+          <input type="hidden" name="room_id" value="{{ room.id }}">
+          <input type="hidden" name="status" value="green">
+          <input type="hidden" name="status_note" value="">
+          <button type="submit" class="btn btn-sm btn-success">🟢 {{ _('Disponível') }}</button>
+        </form>
+        <form method="POST" action="{{ url_for('scheduling.update_room_status', room_id=room.id) }}" class="d-inline">
+          {{ form.hidden_tag() }}
+          <input type="hidden" name="room_id" value="{{ room.id }}">
+          <input type="hidden" name="status" value="yellow">
+          <input type="hidden" name="status_note" value="">
+          <button type="submit" class="btn btn-sm btn-warning">🟡 {{ _('Em Uso') }}</button>
+        </form>
+        <form method="POST" action="{{ url_for('scheduling.update_room_status', room_id=room.id) }}" class="d-inline">
+          {{ form.hidden_tag() }}
+          <input type="hidden" name="room_id" value="{{ room.id }}">
+          <input type="hidden" name="status" value="red">
+          <input type="hidden" name="status_note" value="URGÊNCIA">
+          <button type="submit" class="btn btn-sm btn-danger">🔴 {{ _('Emergência') }}</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="dc-card text-center py-5" style="color:var(--dc-text-muted)">
+      <i class="bi bi-door-open fs-1 d-block mb-2"></i>
+      {{ _('Nenhuma sala configurada') }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-plus-fill me-2"></i>{{ title }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{% if patient %}{{ url_for('patients.detail', patient_id=patient.id) }}{% else %}{{ url_for('patients.index') }}{% endif %}"
+     class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+  </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+  {{ form.hidden_tag() }}
+
+  <!-- Demographics -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3"><i class="bi bi-person-vcard-fill me-2"></i>{{ _('Dados Demográficos') }}</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.full_name.label.text }} <span style="color:var(--dc-danger)">*</span></label>
+        {{ form.full_name(class="form-control", placeholder=_("Nome completo do paciente")) }}
+        {% if form.full_name.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.full_name.errors[0] }}</div>{% endif %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ form.date_of_birth.label.text }}</label>
+        {{ form.date_of_birth(class="form-control") }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ form.gender.label.text }}</label>
+        {{ form.gender(class="form-select") }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ form.id_doc.label.text }}</label>
+        {{ form.id_doc(class="form-control", placeholder="000000000 LA 000") }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ form.nationality.label.text }}</label>
+        {{ form.nationality(class="form-control", placeholder=_("Angolana")) }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ form.phone.label.text }}</label>
+        {{ form.phone(class="form-control", placeholder="+244 900 000 000") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.email.label.text }}</label>
+        {{ form.email(class="form-control", placeholder="email@exemplo.ao") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.assigned_dentist_id.label.text }}</label>
+        {% if current_user.role == 'dentist' %}
+          {{ form.assigned_dentist_id(class="form-select", disabled=True) }}
+          <input type="hidden" name="assigned_dentist_id" value="{{ current_user.id }}">
+          <div class="form-text">{{ _('O paciente será automaticamente atribuído a si.') }}</div>
+        {% else %}
+          {{ form.assigned_dentist_id(class="form-select") }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Address -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3"><i class="bi bi-geo-alt-fill me-2"></i>{{ _('Morada') }}</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">{{ form.address.label.text }}</label>
+        {{ form.address(class="form-control", rows=2, placeholder=_("Bairro, rua, número")) }}
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">{{ form.city.label.text }}</label>
+        {{ form.city(class="form-control", placeholder=_("Luanda")) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Insurance & Emergency -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3"><i class="bi bi-shield-plus-fill me-2"></i>{{ _('Seguro & Emergência') }}</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.insurance_provider.label.text }}</label>
+        {{ form.insurance_provider(class="form-control", placeholder=_("Nome da seguradora")) }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.insurance_number.label.text }}</label>
+        {{ form.insurance_number(class="form-control", placeholder=_("Número de apólice")) }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.emergency_contact_name.label.text }}</label>
+        {{ form.emergency_contact_name(class="form-control", placeholder=_("Nome do contacto")) }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.emergency_contact_phone.label.text }}</label>
+        {{ form.emergency_contact_phone(class="form-control", placeholder="+244 900 000 000") }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Photo -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3"><i class="bi bi-camera-fill me-2"></i>{{ _('Foto de Perfil') }}</div>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      {% if patient and patient.photo_path %}
+      <img src="{{ url_for('main.serve_upload', filename=patient.photo_path) }}"
+           alt="" id="photoPreview"
+           style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--dc-border)">
+      {% else %}
+      <div id="photoPreview"
+           style="width:80px;height:80px;border-radius:50%;background:var(--dc-card);border:2px dashed var(--dc-border);display:flex;align-items:center;justify-content:center;color:var(--dc-text-muted)">
+        <i class="bi bi-person fs-2"></i>
+      </div>
+      {% endif %}
+      <div>
+        {{ form.photo(class="form-control", id="photoInput", style="max-width:320px") }}
+        <div style="font-size:.75rem;color:var(--dc-text-muted);margin-top:.3rem">{{ _('JPG, PNG, WebP — máx. 32 MB') }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trilingual Anamnesis -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3"><i class="bi bi-clipboard2-pulse-fill me-2"></i>{{ _('Anamnese') }}</div>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#anam-pt-f" type="button">🇵🇹 PT</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#anam-en-f" type="button">🇬🇧 EN</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#anam-es-f" type="button">🇪🇸 ES</button></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="anam-pt-f">
+        {{ form.anamnesis_pt(class="form-control", rows=4, placeholder=_("Anamnese em Português")) }}
+      </div>
+      <div class="tab-pane fade" id="anam-en-f">
+        {{ form.anamnesis_en(class="form-control", rows=4, placeholder=_("Anamnesis in English")) }}
+      </div>
+      <div class="tab-pane fade" id="anam-es-f">
+        {{ form.anamnesis_es(class="form-control", rows=4, placeholder=_("Anamnesis en Español")) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Allergies (trilingual) -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3" style="color:var(--dc-danger)">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ _('Alergias') }}
+    </div>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#allerg-pt-f" type="button">🇵🇹 PT</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#allerg-en-f" type="button">🇬🇧 EN</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#allerg-es-f" type="button">🇪🇸 ES</button></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="allerg-pt-f">
+        {{ form.allergies_pt(class="form-control", rows=3, placeholder=_("Alergias conhecidas")) }}
+      </div>
+      <div class="tab-pane fade" id="allerg-en-f">
+        {{ form.allergies_en(class="form-control", rows=3, placeholder=_("Known allergies")) }}
+      </div>
+      <div class="tab-pane fade" id="allerg-es-f">
+        {{ form.allergies_es(class="form-control", rows=3, placeholder=_("Alergias conocidas")) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Medications (trilingual) -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3" style="color:var(--dc-warning)">
+      <i class="bi bi-capsule-pill me-2"></i>{{ _('Medicação Atual') }}
+    </div>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#med-pt-f" type="button">🇵🇹 PT</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#med-en-f" type="button">🇬🇧 EN</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#med-es-f" type="button">🇪🇸 ES</button></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="med-pt-f">
+        {{ form.medications_pt(class="form-control", rows=3, placeholder=_("Medicação atual em uso")) }}
+      </div>
+      <div class="tab-pane fade" id="med-en-f">
+        {{ form.medications_en(class="form-control", rows=3, placeholder=_("Current medications")) }}
+      </div>
+      <div class="tab-pane fade" id="med-es-f">
+        {{ form.medications_es(class="form-control", rows=3, placeholder=_("Medicación actual")) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Chronic Conditions (trilingual) -->
+  <div class="dc-card mb-4">
+    <div class="dc-section-title mb-3" style="color:var(--dc-info, #58a6ff)">
+      <i class="bi bi-heart-pulse-fill me-2"></i>{{ _('Doenças Crónicas') }}
+    </div>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#chronic-pt-f" type="button">🇵🇹 PT</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#chronic-en-f" type="button">🇬🇧 EN</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#chronic-es-f" type="button">🇪🇸 ES</button></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="chronic-pt-f">
+        {{ form.chronic_conditions_pt(class="form-control", rows=3, placeholder=_("Ex: Diabetes, Hipertensão, etc.")) }}
+      </div>
+      <div class="tab-pane fade" id="chronic-en-f">
+        {{ form.chronic_conditions_en(class="form-control", rows=3, placeholder=_("Ex: Diabetes, Hypertension, etc.")) }}
+      </div>
+      <div class="tab-pane fade" id="chronic-es-f">
+        {{ form.chronic_conditions_es(class="form-control", rows=3, placeholder=_("Ej: Diabetes, Hipertensión, etc.")) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="dc-card mb-4">
+    <div class="form-check form-switch">
+      {{ form.is_active(class="form-check-input", role="switch") }}
+      <label class="form-check-label">{{ form.is_active.label.text }}</label>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    {{ form.submit(class="btn btn-primary px-4") }}
+    <a href="{% if patient %}{{ url_for('patients.detail', patient_id=patient.id) }}{% else %}{{ url_for('patients.index') }}{% endif %}"
+       class="btn btn-outline-secondary">{{ _('Cancelar') }}</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('photoInput').addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = document.getElementById('photoPreview');
+        if (preview.tagName === 'IMG') {
+          preview.src = e.target.result;
+        } else {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.style.cssText = 'width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--dc-border)';
+          preview.replaceWith(img);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+{% endblock %}

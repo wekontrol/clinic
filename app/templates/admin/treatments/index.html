@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Tratamentos') }}{% endblock %}
+{% block page_title %}<i class="bi bi-tools me-2" style="color:var(--dc-primary)"></i>{{ _('Catálogo de Tratamentos') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tr-cards { display: none; }
+@media (max-width: 767px) {
+  .tr-cards      { display: flex; flex-direction: column; gap: .6rem; }
+  .tr-table-wrap { display: none; }
+}
+.tr-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+}
+.tr-card-icon {
+  width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(74,158,255,.12); color: var(--dc-primary); font-size: 1rem;
+}
+.tr-card-body   { flex: 1; min-width: 0; }
+.tr-card-name   { font-size: .93rem; font-weight: 600; color: var(--dc-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-card-meta   { font-size: .75rem; color: var(--dc-text-muted); margin-top: .25rem; display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center; }
+.tr-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dc-page-header">
+  <div>
+    <h1>{{ _('Tratamentos') }}</h1>
+    <p>{{ _('Gestão do catálogo de tratamentos (trilingue)') }}</p>
+  </div>
+  {% if current_user.role in ['superadmin', 'clinical_director'] %}
+  <a href="{{ url_for('admin.new_treatment') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>{{ _('Novo Tratamento') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filter bar -->
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="{{ url_for('admin.treatments') }}" class="btn btn-sm {% if not request.args.get('inactive') %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ _('Ativos') }}
+  </a>
+  <a href="{{ url_for('admin.treatments', inactive=1) }}" class="btn btn-sm {% if request.args.get('inactive') %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ _('Todos') }}
+  </a>
+  <span class="ms-auto" style="font-size:.8rem;color:var(--dc-text-muted)">
+    {{ treatments.total }} {{ _('tratamento(s)') }}
+  </span>
+</div>
+
+{% if treatments.items %}
+
+<!-- ══ MOBILE CARDS ══ -->
+<div class="tr-cards">
+  {% for t in treatments.items %}
+  <div class="tr-card">
+    <!-- Icon -->
+    <div class="tr-card-icon">
+      <i class="bi bi-tools"></i>
+    </div>
+
+    <!-- Body -->
+    <div class="tr-card-body">
+      <div class="tr-card-name">{{ t.name_pt }}</div>
+      <div class="tr-card-meta">
+        {% if t.category %}
+        <span class="badge" style="background:rgba(74,158,255,.15);color:var(--dc-primary);font-size:.65rem">{{ t.category }}</span>
+        {% endif %}
+        <span class="badge bg-{% if t.is_active %}success{% else %}secondary{% endif %}" style="font-size:.65rem">
+          {{ _('Ativo') if t.is_active else _('Inativo') }}
+        </span>
+      </div>
+      <div class="tr-card-meta mt-1">
+        {% if t.price %}<span><i class="bi bi-tag-fill"></i>{{ '%.2f Kz' % t.price }}</span>{% endif %}
+        {% if t.duration_minutes %}<span><i class="bi bi-clock-fill"></i>{{ t.duration_minutes }} min</span>{% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    {% if current_user.role in ['superadmin', 'clinical_director'] %}
+    <div class="tr-card-actions">
+      <a href="{{ url_for('admin.edit_treatment', id=t.id) }}"
+         class="btn btn-sm btn-primary py-1 px-2" title="{{ _('Editar') }}">
+        <i class="bi bi-pencil-fill" style="font-size:.75rem"></i>
+      </a>
+      <form method="POST" action="{{ url_for('admin.toggle_treatment', id=t.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if t.is_active else 'success' }} py-1 px-2"
+                title="{{ _('Desativar') if t.is_active else _('Ativar') }}">
+          <i class="bi bi-toggle-{{ 'on' if t.is_active else 'off' }}" style="font-size:.75rem"></i>
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ══ DESKTOP TABLE ══ -->
+<div class="dc-card tr-table-wrap">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>{{ _('Nome (PT)') }}</th>
+          <th>{{ _('EN') }}</th>
+          <th>{{ _('ES') }}</th>
+          <th>{{ _('Categoria') }}</th>
+          <th>{{ _('Preço') }}</th>
+          <th>{{ _('Duração') }}</th>
+          <th>{{ _('Estado') }}</th>
+          {% if current_user.role in ['superadmin', 'clinical_director'] %}
+          <th>{{ _('Ações') }}</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in treatments.items %}
+        <tr>
+          <td>
+            <div style="font-weight:500;color:var(--dc-white)">{{ t.name_pt }}</div>
+            {% if t.description_pt %}
+            <div style="font-size:.75rem;color:var(--dc-text-muted)">{{ t.description_pt[:60] }}{% if t.description_pt|length > 60 %}…{% endif %}</div>
+            {% endif %}
+          </td>
+          <td style="font-size:.85rem">{{ t.name_en }}</td>
+          <td style="font-size:.85rem">{{ t.name_es }}</td>
+          <td>
+            {% if t.category %}
+            <span class="badge" style="background:rgba(74,158,255,.15);color:var(--dc-primary)">{{ t.category }}</span>
+            {% else %}<span style="color:var(--dc-text-muted)">—</span>{% endif %}
+          </td>
+          <td style="font-size:.85rem">{{ '%.2f Kz' % t.price if t.price else '—' }}</td>
+          <td style="font-size:.85rem">{{ t.duration_minutes ~ ' min' if t.duration_minutes else '—' }}</td>
+          <td>
+            <span class="badge bg-{% if t.is_active %}success{% else %}secondary{% endif %}">
+              {{ _('Ativo') if t.is_active else _('Inativo') }}
+            </span>
+          </td>
+          {% if current_user.role in ['superadmin', 'clinical_director'] %}
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('admin.edit_treatment', id=t.id) }}" class="btn btn-sm btn-outline-primary" title="{{ _('Editar') }}">
+                <i class="bi bi-pencil-fill"></i>
+              </a>
+              <form method="POST" action="{{ url_for('admin.toggle_treatment', id=t.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if t.is_active else 'success' }}"
+                        title="{{ _('Desativar') if t.is_active else _('Ativar') }}">
+                  <i class="bi bi-{{ 'toggle-on' if t.is_active else 'toggle-off' }}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if treatments.pages > 1 %}
+  <div class="d-flex justify-content-center mt-3">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% for page in treatments.iter_pages() %}
+          {% if page %}
+            <li class="page-item {% if page == treatments.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin.treatments', page=page) }}">{{ page }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Mobile pagination -->
+{% if treatments.pages > 1 %}
+<div class="d-flex justify-content-center mt-3 d-md-none">
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      {% for page in treatments.iter_pages() %}
+        {% if page %}
+          <li class="page-item {% if page == treatments.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.treatments', page=page) }}">{{ page }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+
+{% else %}
+<div class="dc-card text-center py-5" style="color:var(--dc-text-muted)">
+  <i class="bi bi-tools fs-2 mb-2 d-block"></i>
+  {{ _('Nenhum tratamento encontrado') }}
+</div>
+{% endif %}
+{% endblock %}

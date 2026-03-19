@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Registo de Auditoria') }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-lock-fill me-2"></i>{{ _('Registo de Auditoria Clínica') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0" style="color:var(--dc-text)">{{ _('Registo de Auditoria') }}</h4>
+    <small style="color:var(--dc-text-muted)">{{ _('Histórico imutável de todas as ações no sistema') }}</small>
+  </div>
+  <span class="badge bg-danger">
+    <i class="bi bi-lock-fill me-1"></i>{{ _('Apenas Direção / Superadmin') }}
+  </span>
+</div>
+
+<!-- Filters -->
+<div class="dc-card p-3 mb-4">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label form-label-sm mb-1">{{ _('Utilizador') }}</label>
+      <select name="user_id" class="form-select form-select-sm">
+        <option value="">{{ _('Todos') }}</option>
+        {% for u in users %}
+        <option value="{{ u.id }}" {% if current_user_id == u.id %}selected{% endif %}>{{ u.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label form-label-sm mb-1">{{ _('Ação') }}</label>
+      <select name="action" class="form-select form-select-sm">
+        <option value="">{{ _('Todas') }}</option>
+        {% for a in actions %}
+        <option value="{{ a }}" {% if current_action == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label form-label-sm mb-1">{{ _('Tabela') }}</label>
+      <select name="table" class="form-select form-select-sm">
+        <option value="">{{ _('Todas') }}</option>
+        {% for t in tables %}
+        <option value="{{ t }}" {% if current_table == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label form-label-sm mb-1">{{ _('De') }}</label>
+      <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label form-label-sm mb-1">{{ _('Até') }}</label>
+      <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+    </div>
+    <div class="col-auto d-flex gap-1">
+      <button class="btn btn-outline-secondary btn-sm" type="submit"><i class="bi bi-funnel-fill me-1"></i>{{ _('Filtrar') }}</button>
+      <a href="{{ url_for('sessions.audit_view') }}" class="btn btn-link btn-sm">{{ _('Limpar') }}</a>
+    </div>
+  </form>
+</div>
+
+<div class="dc-card p-0">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="color:var(--dc-text);font-size:.82rem">
+      <thead style="border-bottom:1px solid var(--dc-border)">
+        <tr style="color:var(--dc-text-muted);font-size:.73rem;text-transform:uppercase;letter-spacing:.05em">
+          <th class="px-3 py-2">{{ _('Data/Hora') }}</th>
+          <th class="px-3 py-2">{{ _('Utilizador') }}</th>
+          <th class="px-3 py-2">{{ _('Ação') }}</th>
+          <th class="px-3 py-2">{{ _('Tabela') }}</th>
+          <th class="px-3 py-2">{{ _('Registo') }}</th>
+          <th class="px-3 py-2">{{ _('IP') }}</th>
+          <th class="px-3 py-2">{{ _('Descrição') }}</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs.items %}
+        <tr>
+          <td class="px-3 py-2 text-nowrap" style="color:var(--dc-text-muted)">{{ log.timestamp.strftime('%d/%m/%y %H:%M') if log.timestamp else '—' }}</td>
+          <td class="px-3 py-2">
+            <span title="{{ log.username }}">{{ log.username or '—' }}</span>
+          </td>
+          <td class="px-3 py-2">
+            {% if log.action == 'CREATE' %}
+            <span class="badge bg-success">{{ log.action }}</span>
+            {% elif log.action == 'DELETE' %}
+            <span class="badge bg-danger">{{ log.action }}</span>
+            {% elif log.action == 'UPDATE' %}
+            <span class="badge bg-warning text-dark">{{ log.action }}</span>
+            {% elif log.action == 'ADDENDUM' %}
+            <span class="badge bg-primary">{{ log.action }}</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ log.action }}</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2"><code style="font-size:.75rem;color:var(--dc-primary)">{{ log.table_name }}</code></td>
+          <td class="px-3 py-2" style="color:var(--dc-text-muted)">#{{ log.record_id or '—' }}</td>
+          <td class="px-3 py-2" style="color:var(--dc-text-muted)">{{ log.ip_address or '—' }}</td>
+          <td class="px-3 py-2" style="color:var(--dc-text-muted)">{{ log.description or '' }}</td>
+          <td class="px-3 py-2 text-end">
+            {% if log.old_value or log.new_value %}
+            <button class="btn btn-link btn-sm p-0" style="color:var(--dc-primary)"
+                    data-bs-toggle="modal" data-bs-target="#diffModal{{ log.id }}">
+              <i class="bi bi-code-slash"></i>
+            </button>
+            <!-- Diff modal -->
+            <div class="modal fade" id="diffModal{{ log.id }}" tabindex="-1">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content" style="background:var(--dc-card-bg);border:1px solid var(--dc-border)">
+                  <div class="modal-header" style="border-color:var(--dc-border)">
+                    <h6 class="modal-title" style="color:var(--dc-text)">{{ log.action }} — {{ log.table_name }} #{{ log.record_id }}</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body row g-3">
+                    <div class="col-md-6">
+                      <p class="small mb-1 text-danger"><i class="bi bi-dash-circle me-1"></i>{{ _('Valor Anterior') }}</p>
+                      <pre style="background:rgba(255,100,100,.06);border:1px solid rgba(255,100,100,.2);border-radius:6px;padding:.6rem;font-size:.73rem;color:var(--dc-text);white-space:pre-wrap">{{ log.old_value|tojson(indent=2) if log.old_value else 'null' }}</pre>
+                    </div>
+                    <div class="col-md-6">
+                      <p class="small mb-1 text-success"><i class="bi bi-plus-circle me-1"></i>{{ _('Novo Valor') }}</p>
+                      <pre style="background:rgba(50,255,100,.06);border:1px solid rgba(50,255,100,.2);border-radius:6px;padding:.6rem;font-size:.73rem;color:var(--dc-text);white-space:pre-wrap">{{ log.new_value|tojson(indent=2) if log.new_value else 'null' }}</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4" style="color:var(--dc-text-muted)">{{ _('Nenhum registo de auditoria encontrado.') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if logs.pages > 1 %}
+  <div class="d-flex justify-content-center py-3">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if logs.has_prev %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('sessions.audit_view', page=logs.prev_num, user_id=current_user_id, action=current_action, table=current_table, date_from=date_from, date_to=date_to) }}">‹</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">{{ logs.page }} / {{ logs.pages }}</span></li>
+        {% if logs.has_next %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('sessions.audit_view', page=logs.next_num, user_id=current_user_id, action=current_action, table=current_table, date_from=date_from, date_to=date_to) }}">›</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

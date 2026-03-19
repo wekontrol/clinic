@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-gear me-2" style="color:var(--dc-primary)"></i>{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+      </a>
+    </div>
+
+    <div class="dc-card">
+      <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">{{ form.username.label.text }} <span class="text-danger">*</span></label>
+            {{ form.username(class="form-control") }}
+            {% if form.username.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.username.errors[0] }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.email.label.text }} <span class="text-danger">*</span></label>
+            {{ form.email(class="form-control") }}
+            {% if form.email.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.email.errors[0] }}</div>{% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.full_name.label.text }} <span class="text-danger">*</span></label>
+            {{ form.full_name(class="form-control") }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.role.label.text }}</label>
+            {{ form.role(class="form-select") }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.phone.label.text }}</label>
+            {{ form.phone(class="form-control", placeholder="+244 900 000 000") }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.specialty.label.text }}</label>
+            {{ form.specialty(class="form-control", placeholder=_("ex: Ortodontia, Endodontia…")) }}
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              {{ form.is_active(class="form-check-input", role="switch") }}
+              <label class="form-check-label">{{ form.is_active.label.text }}</label>
+            </div>
+          </div>
+        </div>
+
+        {% if not user %}
+        <div class="alert alert-warning mt-3" style="font-size:.82rem">
+          <i class="bi bi-key-fill me-2"></i>
+          {{ _('Senha inicial: ') }}<strong>changeme123</strong> — {{ _('o utilizador deve alterar no primeiro acesso.') }}
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mt-4">
+          {{ form.submit(class="btn btn-primary") }}
+          <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">{{ _('Cancelar') }}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

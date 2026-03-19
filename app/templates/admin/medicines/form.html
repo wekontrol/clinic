@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}<i class="bi bi-capsule-pill me-2" style="color:var(--dc-primary)"></i>{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <a href="{{ url_for('admin.medicines') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+      </a>
+    </div>
+
+    <form method="POST">
+      {{ form.hidden_tag() }}
+
+      <!-- Mandatory trilingual notice -->
+      <div class="alert alert-info mb-4" style="font-size:.85rem">
+        <i class="bi bi-translate me-2"></i>
+        <strong>{{ _('Campos obrigatórios em 3 idiomas:') }}</strong>
+        {{ _('O nome do medicamento deve ser inserido em Português, Inglês e Espanhol.') }}
+      </div>
+
+      <!-- Names (mandatory trilingual) -->
+      <div class="dc-card mb-4">
+        <div class="dc-section-title"><i class="bi bi-translate me-2"></i>{{ _('Nome do Medicamento') }} <span class="text-danger">*</span></div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">🇵🇹 {{ form.name_pt.label.text }}</label>
+            {{ form.name_pt(class="form-control", placeholder=_("Nome em Português")) }}
+            {% if form.name_pt.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.name_pt.errors[0] }}</div>{% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">🇬🇧 {{ form.name_en.label.text }}</label>
+            {{ form.name_en(class="form-control", placeholder=_("Name in English")) }}
+            {% if form.name_en.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.name_en.errors[0] }}</div>{% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">🇪🇸 {{ form.name_es.label.text }}</label>
+            {{ form.name_es(class="form-control", placeholder=_("Nombre en Español")) }}
+            {% if form.name_es.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.name_es.errors[0] }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Pharmacology details -->
+      <div class="dc-card mb-4">
+        <div class="dc-section-title"><i class="bi bi-info-circle me-2"></i>{{ _('Dados Farmacológicos') }}</div>
+        <div class="row g-3">
+          <div class="col-md-5">
+            <label class="form-label">{{ form.active_ingredient.label.text }}</label>
+            {{ form.active_ingredient(class="form-control", placeholder=_("ex: Amoxicilina")) }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.dosage_form.label.text }}</label>
+            {{ form.dosage_form(class="form-control", placeholder=_("ex: Comprimido, Gel, Spray")) }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">{{ form.strength.label.text }}</label>
+            {{ form.strength(class="form-control", placeholder=_("ex: 500mg")) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Instructions (trilingual tabs) -->
+      <div class="dc-card mb-4">
+        <div class="dc-section-title"><i class="bi bi-file-medical me-2"></i>{{ _('Instruções de Uso') }}</div>
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#inst-pt" type="button">🇵🇹 PT</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inst-en" type="button">🇬🇧 EN</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#inst-es" type="button">🇪🇸 ES</button></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="inst-pt">
+            {{ form.instructions_pt(class="form-control", rows=3, placeholder=_("Instruções em Português")) }}
+          </div>
+          <div class="tab-pane fade" id="inst-en">
+            {{ form.instructions_en(class="form-control", rows=3, placeholder=_("Instructions in English")) }}
+          </div>
+          <div class="tab-pane fade" id="inst-es">
+            {{ form.instructions_es(class="form-control", rows=3, placeholder=_("Instrucciones en Español")) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Contraindications (trilingual tabs) -->
+      <div class="dc-card mb-4">
+        <div class="dc-section-title"><i class="bi bi-exclamation-triangle me-2" style="color:var(--dc-warning)"></i>{{ _('Contraindicações') }}</div>
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#ci-pt" type="button">🇵🇹 PT</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#ci-en" type="button">🇬🇧 EN</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#ci-es" type="button">🇪🇸 ES</button></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="ci-pt">
+            {{ form.contraindications_pt(class="form-control", rows=3, placeholder=_("Contraindicações em Português")) }}
+          </div>
+          <div class="tab-pane fade" id="ci-en">
+            {{ form.contraindications_en(class="form-control", rows=3, placeholder=_("Contraindications in English")) }}
+          </div>
+          <div class="tab-pane fade" id="ci-es">
+            {{ form.contraindications_es(class="form-control", rows=3, placeholder=_("Contraindicaciones en Español")) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="dc-card mb-4">
+        <div class="form-check form-switch">
+          {{ form.is_active(class="form-check-input", role="switch") }}
+          <label class="form-check-label">{{ form.is_active.label.text }}</label>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('admin.medicines') }}" class="btn btn-outline-secondary">{{ _('Cancelar') }}</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Stock') }}{% endblock %}
+{% block page_title %}<i class="bi bi-box-seam-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Stock de Consumíveis') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.stock-kpi {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 14px;
+  padding: 1.2rem 1.5rem;
+  display: flex; flex-direction: column; gap: .25rem;
+}
+.stock-kpi .kpi-value { font-size: 1.7rem; font-weight: 700; line-height: 1.1; }
+.stock-kpi .kpi-label { font-size: .75rem; font-weight: 600; text-transform: uppercase;
+                         letter-spacing: .06em; color: var(--dc-text-muted); }
+.stock-kpi .kpi-icon  { font-size: 1.4rem; margin-bottom: .25rem; }
+
+.cat-pill {
+  padding: .32rem .85rem; border-radius: 20px; font-size: .78rem; font-weight: 600;
+  cursor: pointer; border: 1.5px solid var(--dc-border); color: var(--dc-text-muted);
+  transition: all .15s; text-decoration: none; display: inline-flex; align-items: center; gap: .35rem;
+}
+.cat-pill:hover, .cat-pill.active {
+  border-color: var(--dc-primary); color: var(--dc-primary);
+  background: rgba(20,184,166,.08);
+}
+
+.qty-badge {
+  font-size: .82rem; font-weight: 700; padding: .25em .65em;
+  border-radius: 7px; white-space: nowrap;
+}
+.qty-ok    { background: rgba(34,197,94,.12);  color: var(--dc-success); }
+.qty-low   { background: rgba(251,191,36,.12); color: var(--dc-warning); }
+.qty-empty { background: rgba(248,113,113,.12); color: var(--dc-danger); }
+
+.stock-row:hover { background: rgba(255,255,255,.025); }
+
+/* Mobile cards */
+.sk-cards { display: none; }
+@media (max-width: 767px) {
+  .sk-cards      { display: flex; flex-direction: column; gap: .6rem; }
+  .sk-table-wrap { display: none; }
+}
+.sk-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.sk-card:active { background: var(--dc-surface); }
+.sk-card-icon {
+  width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(74,158,255,.1); color: var(--dc-primary); font-size: 1rem;
+}
+.sk-card-body   { flex: 1; min-width: 0; }
+.sk-card-name   { font-size: .93rem; font-weight: 600; color: var(--dc-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sk-card-meta   { font-size: .74rem; color: var(--dc-text-muted); margin-top: .2rem; display: flex; flex-wrap: wrap; gap: .3rem .7rem; align-items: center; }
+.sk-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Action buttons ── #}
+<div class="d-flex justify-content-end mb-4">
+  {% if current_user.role in ['superadmin','clinical_director','reception'] %}
+  <a href="{{ url_for('stock.new_product') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-circle-fill me-1"></i>{{ _('Novo Produto') }}
+  </a>
+  {% endif %}
+</div>
+
+{# ── KPIs ── #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stock-kpi">
+      <div class="kpi-icon" style="color:var(--dc-primary)"><i class="bi bi-box-seam-fill"></i></div>
+      <div class="kpi-value" style="color:var(--dc-text)">{{ total_products }}</div>
+      <div class="kpi-label">{{ _('Produtos Activos') }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stock-kpi">
+      <div class="kpi-icon" style="color:var(--dc-warning)"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="kpi-value" style="color:var(--dc-warning)">{{ low_stock_items|length }}</div>
+      <div class="kpi-label">{{ _('Stock Baixo') }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stock-kpi">
+      <div class="kpi-icon" style="color:var(--dc-danger)"><i class="bi bi-slash-circle-fill"></i></div>
+      <div class="kpi-value" style="color:var(--dc-danger)">{{ out_of_stock|length }}</div>
+      <div class="kpi-label">{{ _('Esgotados') }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stock-kpi">
+      <div class="kpi-icon" style="color:var(--dc-success)"><i class="bi bi-currency-exchange"></i></div>
+      <div class="kpi-value" style="color:var(--dc-success);font-size:1.15rem">{{ '{:,.2f}'.format(total_value) }} Kz</div>
+      <div class="kpi-label">{{ _('Valor Total') }}</div>
+    </div>
+  </div>
+</div>
+
+{# ── Low stock alert banner ── #}
+{% if low_stock_items %}
+<div class="mb-4 p-3 rounded-3" style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3)">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <i class="bi bi-exclamation-triangle-fill" style="color:var(--dc-warning)"></i>
+    <span style="font-size:.82rem;font-weight:700;color:var(--dc-warning);text-transform:uppercase;letter-spacing:.06em">
+      {{ _('Itens abaixo do mínimo') }}
+    </span>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% for p in low_stock_items %}
+    <a href="{{ url_for('stock.detail', product_id=p.id) }}"
+       class="badge text-decoration-none"
+       style="background:rgba(251,191,36,.15);color:var(--dc-warning);border:1px solid rgba(251,191,36,.35);font-size:.75rem;padding:.3rem .65rem">
+      <i class="bi bi-{{ p.category_icon }} me-1"></i>
+      {{ p.name_pt }} — {{ p.qty_current|int }} / {{ p.qty_minimum|int }} {{ p.unit }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Category filter pills ── #}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a href="{{ url_for('stock.index') }}" class="cat-pill {% if not cat_filter %}active{% endif %}">
+    <i class="bi bi-grid-fill"></i> {{ _('Todos') }}
+  </a>
+  {% for key, label in categories.items() %}
+  <a href="{{ url_for('stock.index', cat=key) }}"
+     class="cat-pill {% if cat_filter == key %}active{% endif %}">
+    <i class="bi bi-{{ StockCategory.ICONS[key] }}"></i> {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if products %}
+
+<!-- ══ MOBILE CARDS ══ -->
+<div class="sk-cards">
+  {% for p in products %}
+  {% set qty = p.qty_current|float %}
+  {% set min_qty = p.qty_minimum|float %}
+  <div class="sk-card" onclick="location.href='{{ url_for('stock.detail', product_id=p.id) }}'">
+    <!-- Icon -->
+    <div class="sk-card-icon">
+      <i class="bi bi-{{ p.category_icon }}"></i>
+    </div>
+
+    <!-- Body -->
+    <div class="sk-card-body">
+      <div class="sk-card-name">{{ p.name_pt }}</div>
+      <div class="sk-card-meta">
+        {% if qty == 0 %}
+          <span class="qty-badge qty-empty" style="font-size:.68rem;padding:.2em .5em">0 {{ p.unit }}</span>
+        {% elif min_qty > 0 and qty < min_qty %}
+          <span class="qty-badge qty-low" style="font-size:.68rem;padding:.2em .5em">{{ qty|int }} {{ p.unit }}</span>
+        {% else %}
+          <span class="qty-badge qty-ok" style="font-size:.68rem;padding:.2em .5em">{{ qty|int }} {{ p.unit }}</span>
+        {% endif %}
+        <span><i class="bi bi-{{ p.category_icon }}" style="color:var(--dc-primary)"></i>{{ p.category_label }}</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="sk-card-actions">
+      {% if current_user.role in ['superadmin','clinical_director','reception'] %}
+      <a href="{{ url_for('stock.add_movement', product_id=p.id, type='in') }}"
+         class="btn btn-sm py-1 px-2"
+         style="background:rgba(34,197,94,.12);color:var(--dc-success);border:none"
+         onclick="event.stopPropagation()" title="{{ _('Entrada') }}">
+        <i class="bi bi-arrow-down-circle-fill" style="font-size:.75rem"></i>
+      </a>
+      {% endif %}
+      <a href="{{ url_for('stock.detail', product_id=p.id) }}"
+         class="btn btn-sm btn-outline-secondary py-1 px-2"
+         onclick="event.stopPropagation()">
+        <i class="bi bi-info-circle-fill" style="font-size:.75rem"></i>
+        <span style="font-size:.7rem">{{ _('Detalhes') }}</span>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ══ DESKTOP TABLE ══ -->
+<div class="dc-card p-0 overflow-hidden sk-table-wrap">
+  <div class="table-responsive">
+    <table class="table mb-0" style="color:var(--dc-text)">
+      <thead>
+        <tr style="font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dc-text-muted);border-bottom:2px solid var(--dc-border)">
+          <th class="px-4 py-3">{{ _('Produto') }}</th>
+          <th class="py-3">{{ _('Categoria') }}</th>
+          <th class="text-center py-3">{{ _('Stock Actual') }}</th>
+          <th class="text-center py-3">{{ _('Mínimo') }}</th>
+          <th class="text-end py-3">{{ _('Valor') }}</th>
+          <th class="text-center py-3">{{ _('Ações') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr class="stock-row" style="border-bottom:1px solid var(--dc-border)">
+          <td class="px-4 py-3">
+            <div style="font-weight:600;font-size:.88rem">{{ p.name_pt }}</div>
+            {% if p.supplier %}<div style="font-size:.74rem;color:var(--dc-text-muted)"><i class="bi bi-truck me-1"></i>{{ p.supplier }}</div>{% endif %}
+          </td>
+          <td class="py-3">
+            <span style="font-size:.78rem;color:var(--dc-text-muted)">
+              <i class="bi bi-{{ p.category_icon }} me-1" style="color:var(--dc-primary)"></i>{{ p.category_label }}
+            </span>
+          </td>
+          <td class="text-center py-3">
+            {% set qty = p.qty_current|float %}
+            {% set min_qty = p.qty_minimum|float %}
+            {% if qty == 0 %}
+              <span class="qty-badge qty-empty">0 {{ p.unit }}</span>
+            {% elif min_qty > 0 and qty < min_qty %}
+              <span class="qty-badge qty-low">{{ qty|int }} {{ p.unit }}</span>
+            {% else %}
+              <span class="qty-badge qty-ok">{{ qty|int }} {{ p.unit }}</span>
+            {% endif %}
+          </td>
+          <td class="text-center py-3" style="font-size:.83rem;color:var(--dc-text-muted)">
+            {{ p.qty_minimum|int }} {{ p.unit }}
+          </td>
+          <td class="text-end py-3" style="font-size:.83rem;font-weight:600;color:var(--dc-text)">
+            {% if p.unit_cost %}{{ '{:,.2f}'.format(p.stock_value) }} Kz{% else %}—{% endif %}
+          </td>
+          <td class="text-center py-3">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('stock.detail', product_id=p.id) }}"
+                 class="btn btn-sm" style="background:rgba(20,184,166,.12);color:var(--dc-primary);border:none;padding:.25rem .55rem" title="{{ _('Detalhes') }}">
+                <i class="bi bi-eye-fill"></i>
+              </a>
+              {% if current_user.role in ['superadmin','clinical_director','reception'] %}
+              <a href="{{ url_for('stock.add_movement', product_id=p.id, type='in') }}"
+                 class="btn btn-sm" style="background:rgba(34,197,94,.12);color:var(--dc-success);border:none;padding:.25rem .55rem" title="{{ _('Entrada') }}">
+                <i class="bi bi-arrow-down-circle-fill"></i>
+              </a>
+              {% endif %}
+              {% if current_user.role in ['superadmin','clinical_director'] %}
+              <a href="{{ url_for('stock.add_movement', product_id=p.id, type='out') }}"
+                 class="btn btn-sm" style="background:rgba(248,113,113,.12);color:var(--dc-danger);border:none;padding:.25rem .55rem" title="{{ _('Saída') }}">
+                <i class="bi bi-arrow-up-circle-fill"></i>
+              </a>
+              <a href="{{ url_for('stock.edit_product', product_id=p.id) }}"
+                 class="btn btn-sm" style="background:var(--dc-bg);color:var(--dc-text-muted);border:1px solid var(--dc-border);padding:.25rem .55rem" title="{{ _('Editar') }}">
+                <i class="bi bi-pencil-fill"></i>
+              </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="dc-card text-center py-5" style="color:var(--dc-text-muted)">
+  <i class="bi bi-box-seam mb-3" style="font-size:2.5rem;display:block;opacity:.4"></i>
+  <p class="mb-3">{{ _('Nenhum produto em stock.') }}</p>
+  {% if current_user.role in ['superadmin','clinical_director','reception'] %}
+  <a href="{{ url_for('stock.new_product') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-circle-fill me-1"></i>{{ _('Adicionar Primeiro Produto') }}
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{# ── Recent movements ── #}
+{% if recent_movements %}
+<div class="mt-4">
+  <h6 style="color:var(--dc-text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">
+    <i class="bi bi-clock-history me-1"></i>{{ _('Últimos Movimentos') }}
+  </h6>
+  <div class="dc-card p-0 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table mb-0" style="color:var(--dc-text);font-size:.82rem">
+        <tbody>
+        {% for mv in recent_movements %}
+        <tr style="border-bottom:1px solid var(--dc-border)">
+          <td class="px-4 py-2">
+            <span class="badge me-1" style="background:{% if mv.movement_type=='in' %}rgba(34,197,94,.15){% else %}rgba(248,113,113,.15){% endif %};color:{% if mv.movement_type=='in' %}var(--dc-success){% else %}var(--dc-danger){% endif %};font-size:.68rem">
+              {% if mv.movement_type=='in' %}<i class="bi bi-arrow-down-circle-fill me-1"></i>ENTRADA{% else %}<i class="bi bi-arrow-up-circle-fill me-1"></i>SAÍDA{% endif %}
+            </span>
+            <a href="{{ url_for('stock.detail', product_id=mv.product_id) }}" style="color:var(--dc-text);text-decoration:none">
+              {{ mv.product.name_pt if mv.product else '—' }}
+            </a>
+          </td>
+          <td class="py-2 d-none d-md-table-cell" style="color:var(--dc-text-muted)">{{ mv.reason_label }}</td>
+          <td class="py-2 fw-600" style="color:{% if mv.movement_type=='in' %}var(--dc-success){% else %}var(--dc-danger){% endif %}">
+            {% if mv.movement_type=='in' %}+{% else %}−{% endif %}{{ mv.quantity|int }} {{ mv.product.unit if mv.product else '' }}
+          </td>
+          <td class="py-2 text-end px-4" style="color:var(--dc-text-muted)">
+            {{ mv.created_at.strftime('%d/%m %H:%M') }}
+            {% if mv.created_by %}<span class="ms-1 d-none d-md-inline">· {{ mv.created_by.full_name }}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

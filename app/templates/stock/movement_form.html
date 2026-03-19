@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Movimento de Stock') }}{% endblock %}
+{% block page_title %}
+<i class="bi bi-{% if mv_type=='in' %}arrow-down-circle-fill{% else %}arrow-up-circle-fill{% endif %} me-2"
+   style="color:{% if mv_type=='in' %}var(--dc-success){% else %}var(--dc-danger){% endif %}"></i>
+{% if mv_type=='in' %}{{ _('Entrada de Stock') }}{% else %}{{ _('Saída de Stock') }}{% endif %} —
+<span style="color:var(--dc-primary)">{{ product.name_pt }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+
+    {# Product info card #}
+    <div class="dc-card p-3 mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <div style="width:48px;height:48px;border-radius:10px;background:rgba(20,184,166,.12);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--dc-primary)">
+          <i class="bi bi-{{ product.category_icon }}"></i>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:.95rem;color:var(--dc-text)">{{ product.name_pt }}</div>
+          <div style="font-size:.78rem;color:var(--dc-text-muted)">
+            {{ product.category_label }} · {{ _('Stock actual') }}:
+            <strong style="color:{% if product.is_low_stock %}var(--dc-warning){% else %}var(--dc-success){% endif %}">
+              {{ product.qty_current|int }} {{ product.unit }}
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" novalidate enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="movement_type" value="{{ mv_type }}">
+
+      <div class="dc-card p-4 mb-4">
+        <div class="row g-3">
+
+          {% if current_user.role in ['superadmin','clinical_director'] %}
+          <div class="col-12">
+            <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ _('Tipo de Movimento') }}</label>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('stock.add_movement', product_id=product.id, type='in') }}"
+                 class="btn btn-sm {% if mv_type=='in' %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                <i class="bi bi-arrow-down-circle-fill me-1"></i>{{ _('Entrada') }}
+              </a>
+              <a href="{{ url_for('stock.add_movement', product_id=product.id, type='out') }}"
+                 class="btn btn-sm {% if mv_type=='out' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+                <i class="bi bi-arrow-up-circle-fill me-1"></i>{{ _('Saída') }}
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ _('Motivo') }} <span class="text-danger">*</span></label>
+            <select name="reason" class="form-select" required>
+              {% if mv_type=='in' %}
+                {% for val, label in in_reasons %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              {% else %}
+                {% for val, label in out_reasons %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.quantity.label.text }} <span class="text-danger">*</span></label>
+            <div class="input-group">
+              {{ form.quantity(class='form-control' + (' is-invalid' if form.quantity.errors else ''), placeholder='0') }}
+              <span class="input-group-text">{{ product.unit }}</span>
+            </div>
+            {% for e in form.quantity.errors %}<div class="text-danger" style="font-size:.78rem">{{ e }}</div>{% endfor %}
+            {% if mv_type=='out' %}
+            <div class="form-text" style="color:var(--dc-warning)">
+              <i class="bi bi-info-circle me-1"></i>{{ _('Disponível') }}: {{ product.qty_current|int }} {{ product.unit }}
+            </div>
+            {% endif %}
+          </div>
+
+          {% if mv_type=='in' %}
+          <div class="col-md-6">
+            <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.unit_cost.label.text }}</label>
+            <div class="input-group">
+              {{ form.unit_cost(class='form-control', placeholder='0.00') }}
+              <span class="input-group-text">Kz</span>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">{{ form.notes.label.text }}</label>
+            {{ form.notes(class='form-control', rows=2, placeholder=_('Notas opcionais…')) }}
+          </div>
+
+          {% if mv_type == 'in' %}
+          <div class="col-12">
+            <div style="border-top:1px solid var(--dc-border);padding-top:1rem;margin-top:.25rem">
+              <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">
+                <i class="bi bi-receipt-cutoff me-1" style="color:var(--dc-primary)"></i>{{ _('Fatura / Comprovativo') }}
+                <span style="font-size:.72rem;opacity:.7">{{ _('(opcional)') }}</span>
+              </label>
+              <input type="file" name="invoice_file" class="form-control form-control-sm"
+                     accept=".pdf,.jpg,.jpeg,.png">
+              <div class="form-text">
+                <i class="bi bi-info-circle me-1"></i>{{ _('PDF, JPG ou PNG · Máx.') }} {{ stock_invoice_max_mb }} MB
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{{ url_for('stock.detail', product_id=product.id) }}" class="btn btn-outline-secondary">{{ _('Cancelar') }}</a>
+        <button type="submit" class="btn {% if mv_type=='in' %}btn-success{% else %}btn-danger{% endif %} px-4">
+          <i class="bi bi-check-circle-fill me-2"></i>{{ _('Registar') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

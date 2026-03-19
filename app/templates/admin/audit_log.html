@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Registo de Auditoria') }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-lock-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Registo de Auditoria') }}{% endblock %}
+
+{% block content %}
+<div class="dc-page-header">
+  <div>
+    <h1>{{ _('Auditoria') }}</h1>
+    <p>{{ _('Registo completo de todas as ações Create/Update/Delete') }}</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="dc-card mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label" style="font-size:.8rem">{{ _('Utilizador') }}</label>
+      <select name="user_id" class="form-select form-select-sm">
+        <option value="">{{ _('Todos') }}</option>
+        {% for u in users %}
+        <option value="{{ u.id }}" {% if request.args.get('user_id', type=int) == u.id %}selected{% endif %}>
+          {{ u.username }} ({{ u.full_name }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" style="font-size:.8rem">{{ _('Ação') }}</label>
+      <select name="action" class="form-select form-select-sm">
+        <option value="">{{ _('Todas') }}</option>
+        <option value="CREATE" {% if request.args.get('action') == 'CREATE' %}selected{% endif %}>CREATE</option>
+        <option value="UPDATE" {% if request.args.get('action') == 'UPDATE' %}selected{% endif %}>UPDATE</option>
+        <option value="DELETE" {% if request.args.get('action') == 'DELETE' %}selected{% endif %}>DELETE</option>
+        <option value="LOGIN" {% if request.args.get('action') == 'LOGIN' %}selected{% endif %}>LOGIN</option>
+        <option value="LOGOUT" {% if request.args.get('action') == 'LOGOUT' %}selected{% endif %}>LOGOUT</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" style="font-size:.8rem">{{ _('Tabela') }}</label>
+      <input type="text" name="table" class="form-control form-control-sm" value="{{ request.args.get('table', '') }}" placeholder="users, treatments…">
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-sm btn-primary w-100">
+        <i class="bi bi-funnel-fill me-1"></i>{{ _('Filtrar') }}
+      </button>
+    </div>
+    <div class="col-md-2">
+      <a href="{{ url_for('admin.audit_log') }}" class="btn btn-sm btn-outline-secondary w-100">
+        {{ _('Limpar') }}
+      </a>
+    </div>
+  </form>
+</div>
+
+<div class="dc-card">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <span style="font-size:.8rem;color:var(--dc-text-muted)">{{ logs.total }} {{ _('registos') }}</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{{ _('Utilizador') }}</th>
+          <th>{{ _('Ação') }}</th>
+          <th>{{ _('Tabela') }}</th>
+          <th>{{ _('Registo ID') }}</th>
+          <th>{{ _('Descrição') }}</th>
+          <th>{{ _('IP') }}</th>
+          <th>{{ _('Data/Hora') }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs.items %}
+        <tr>
+          <td style="font-size:.75rem;color:var(--dc-text-muted)">{{ log.id }}</td>
+          <td style="font-size:.8rem">{{ log.username or '—' }}</td>
+          <td>
+            <span class="badge bg-{% if log.action == 'CREATE' %}success{% elif log.action == 'UPDATE' %}warning text-dark{% elif log.action == 'DELETE' %}danger{% elif log.action in ['LOGIN','ROLLBACK'] %}primary{% else %}secondary{% endif %}" style="font-size:.65rem">
+              {{ log.action }}
+            </span>
+          </td>
+          <td><code style="font-size:.75rem;color:var(--dc-text-muted)">{{ log.table_name }}</code></td>
+          <td style="font-size:.8rem;color:var(--dc-text-muted)">{{ log.record_id or '—' }}</td>
+          <td style="font-size:.8rem;color:var(--dc-text-muted);max-width:250px">
+            {% if log.old_value and log.action == 'UPDATE' %}
+              <span class="d-inline-block text-truncate" style="max-width:200px" title="{{ log.description }}">
+                {{ (log.description or '')[:60] }}{% if log.description and log.description|length > 60 %}…{% endif %}
+              </span>
+              <i class="bi bi-arrow-counterclockwise ms-1" style="color:var(--dc-warning);font-size:.7rem"
+                 title="{{ _('Reversão disponível') }}"></i>
+            {% else %}
+              {{ (log.description or '')[:80] }}{% if log.description and log.description|length > 80 %}…{% endif %}
+            {% endif %}
+          </td>
+          <td style="font-size:.75rem;color:var(--dc-text-muted)">{{ log.ip_address or '—' }}</td>
+          <td style="font-size:.75rem;color:var(--dc-text-muted);white-space:nowrap">
+            {{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else '—' }}
+          </td>
+          <td class="text-end pe-2">
+            {% if log.action == 'UPDATE' and log.old_value and log.record_id
+               and log.table_name in ['patients','clinical_sessions']
+               and current_user.role in ['superadmin','clinical_director'] %}
+            <form method="POST"
+                  action="{{ url_for('admin.audit_rollback', log_id=log.id) }}"
+                  onsubmit="return confirm('{{ _('Reverter este registo para o estado anterior? Esta acção não pode ser desfeita.') }}')"
+                  class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-xs btn-outline-warning py-0 px-1"
+                      style="font-size:.65rem;white-space:nowrap">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>{{ _('Reverter') }}
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center py-5" style="color:var(--dc-text-muted)">
+            <i class="bi bi-shield-lock fs-2 mb-2 d-block"></i>
+            {{ _('Nenhum registo encontrado') }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if logs.pages > 1 %}
+  <div class="d-flex justify-content-center mt-3">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% for page in logs.iter_pages() %}
+          {% if page %}
+            <li class="page-item {% if page == logs.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin.audit_log', page=page, **request.args) }}">{{ page }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

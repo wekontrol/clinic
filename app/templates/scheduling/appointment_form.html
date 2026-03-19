@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}<i class="bi bi-calendar-plus-fill me-2"></i>{{ title }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('scheduling.calendar') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar à Agenda') }}
+  </a>
+</div>
+
+<div class="dc-card" style="max-width:700px">
+  <form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.patient_id.label.text }} <span style="color:var(--dc-danger)">*</span></label>
+        {% set picker_id = 'appt' %}
+        {% set field_name = 'patient_id' %}
+        {% set allow_blank = false %}
+        {% set selected_id = appt.patient_id if appt else 0 %}
+        {% include '_patient_picker.html' %}
+        {% if form.patient_id.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.patient_id.errors[0] }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.dentist_id.label.text }} <span style="color:var(--dc-danger)">*</span></label>
+        {{ form.dentist_id(class="form-select") }}
+        {% if form.dentist_id.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.dentist_id.errors[0] }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.room_id.label.text }}</label>
+        {{ form.room_id(class="form-select") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">&nbsp;</label>
+        <div class="form-check mt-2">
+          {{ form.is_emergency(class="form-check-input", role="switch", id="isEmergency") }}
+          <label class="form-check-label text-danger fw-600" for="isEmergency">
+            <i class="bi bi-exclamation-octagon-fill me-1"></i>{{ form.is_emergency.label.text }}
+          </label>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.start_time.label.text }} <span style="color:var(--dc-danger)">*</span></label>
+        {{ form.start_time(class="form-control") }}
+        {% if form.start_time.errors %}<div class="text-danger mt-1" style="font-size:.8rem">{{ form.start_time.errors[0] }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.end_time.label.text }}</label>
+        {{ form.end_time(class="form-control") }}
+      </div>
+      <div class="col-12">
+        <label class="form-label">{{ form.notes.label.text }}</label>
+        {{ form.notes(class="form-control", rows=3, placeholder=_("Observações sobre a consulta")) }}
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      {{ form.submit(class="btn btn-primary") }}
+      <a href="{{ url_for('scheduling.calendar') }}" class="btn btn-outline-secondary">{{ _('Cancelar') }}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

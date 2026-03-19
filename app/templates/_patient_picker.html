@@ -1,0 +1,225 @@
+{#
+  Reusable patient picker with search (name + id_doc + DOB).
+  Required context vars:
+    patients        — list of Patient objects
+    picker_id       — unique string id for this picker instance (e.g. "sess", "emrg")
+    field_name      — form field name (default "patient_id")
+    allow_blank     — if True, show "(Sem Paciente / Novo)" option (default False)
+    selected_id     — pre-selected patient id (optional)
+    required        — add required attr (default True)
+#}
+{% set _pid   = picker_id | default('pk') %}
+{% set _fname = field_name | default('patient_id') %}
+{% set _req   = required | default(true) %}
+{% set _blank = allow_blank | default(false) %}
+
+<div class="patient-picker-wrap" id="pp-wrap-{{ _pid }}">
+  <!-- Hidden real input submitted with the form -->
+  <input type="hidden"
+         name="{{ _fname }}"
+         id="pp-hidden-{{ _pid }}"
+         {% if selected_id %}value="{{ selected_id }}"{% endif %}
+         {% if _req and not _blank %}required{% endif %}>
+
+  <!-- Search trigger button — shows selected patient or placeholder -->
+  <button type="button"
+          class="pp-trigger form-select text-start"
+          id="pp-trigger-{{ _pid }}"
+          data-ppid="{{ _pid }}"
+          style="background:var(--dc-bg);color:var(--dc-text);border-color:var(--dc-border);display:flex;align-items:center;gap:.5rem;cursor:pointer">
+    <i class="bi bi-search" style="color:var(--dc-text-muted);flex-shrink:0"></i>
+    <span id="pp-label-{{ _pid }}" style="flex-grow:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dc-text-muted)">
+      {% if selected_id %}
+        {% for p in patients %}{% if p.id == selected_id %}{{ p.full_name }}{% endif %}{% endfor %}
+      {% else %}
+        {{ _('Selecionar paciente…') }}
+      {% endif %}
+    </span>
+    {% if selected_id %}<i class="bi bi-x-circle-fill pp-clear" data-ppid="{{ _pid }}" style="color:var(--dc-text-muted);flex-shrink:0;font-size:.8rem"></i>{% endif %}
+  </button>
+
+  <!-- Dropdown panel (hidden by default) -->
+  <div class="pp-panel" id="pp-panel-{{ _pid }}"
+       style="display:none;position:absolute;z-index:1055;width:100%;background:var(--dc-card);border:1px solid var(--dc-border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:320px;overflow:hidden;flex-direction:column">
+    <!-- Search input -->
+    <div style="padding:.5rem;border-bottom:1px solid var(--dc-border);background:var(--dc-card)">
+      <div style="position:relative">
+        <i class="bi bi-search" style="position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--dc-text-muted);pointer-events:none;font-size:.85rem"></i>
+        <input type="text"
+               class="form-control form-control-sm pp-search"
+               id="pp-search-{{ _pid }}"
+               placeholder="{{ _('Pesquisar por nome ou doc. identificação…') }}"
+               autocomplete="off"
+               style="padding-left:2rem;background:var(--dc-bg);color:var(--dc-text);border-color:var(--dc-border)">
+      </div>
+    </div>
+    <!-- Results list -->
+    <div class="pp-results" id="pp-results-{{ _pid }}" style="overflow-y:auto;max-height:256px">
+      {% if _blank %}
+      <div class="pp-item" data-ppid="{{ _pid }}" data-value="" data-label="{{ _('Novo Paciente') }}"
+           style="padding:.55rem .75rem;cursor:pointer;border-bottom:1px solid var(--dc-border);display:flex;align-items:center;gap:.6rem;font-size:.85rem">
+        <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="bi bi-person-plus-fill" style="color:var(--dc-text-muted)"></i>
+        </div>
+        <div>
+          <div style="color:var(--dc-text-muted)">{{ _('Novo Paciente') }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% for p in patients %}
+      <div class="pp-item"
+           data-ppid="{{ _pid }}"
+           data-value="{{ p.id }}"
+           data-label="{{ p.full_name }}"
+           data-search="{{ (p.full_name + ' ' + (p.id_doc or '') + ' ' + (p.phone or '')) | lower }}"
+           style="padding:.55rem .75rem;cursor:pointer;{% if not loop.last %}border-bottom:1px solid rgba(255,255,255,.04);{% endif %}display:flex;align-items:center;gap:.6rem;font-size:.85rem">
+        <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--dc-primary),var(--dc-primary-d,#0e8a7d));display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0">
+          {{ p.full_name[:2].upper() }}
+        </div>
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-weight:600;color:var(--dc-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.full_name }}</div>
+          <div style="font-size:.72rem;color:var(--dc-text-muted);display:flex;gap:.6rem;flex-wrap:wrap">
+            {% if p.id_doc %}
+            <span><i class="bi bi-card-text me-1"></i>{{ p.id_doc }}</span>
+            {% endif %}
+            {% if p.date_of_birth %}
+            <span><i class="bi bi-calendar3 me-1"></i>{{ p.date_of_birth.strftime('%d/%m/%Y') }}</span>
+            {% endif %}
+            {% if p.phone %}
+            <span><i class="bi bi-telephone me-1"></i>{{ p.phone }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <!-- No results -->
+    <div class="pp-noresult" id="pp-noresult-{{ _pid }}"
+         style="display:none;padding:.75rem;text-align:center;color:var(--dc-text-muted);font-size:.83rem">
+      <i class="bi bi-person-x-fill d-block mb-1"></i>{{ _('Nenhum paciente encontrado') }}
+    </div>
+  </div>
+</div>
+
+<style>
+.patient-picker-wrap { position: relative; }
+.pp-item.pp-focused, .pp-item:hover { background: var(--dc-sidebar) !important; }
+.pp-trigger:focus { outline: none; box-shadow: 0 0 0 .2rem rgba(20,184,166,.25); border-color: var(--dc-primary) !important; }
+.pp-clear:hover { color: var(--dc-danger) !important; }
+</style>
+
+<script>
+(function () {
+  'use strict';
+  var PID = '{{ _pid }}';
+
+  var wrap    = document.getElementById('pp-wrap-' + PID);
+  var trigger = document.getElementById('pp-trigger-' + PID);
+  var panel   = document.getElementById('pp-panel-' + PID);
+  var search  = document.getElementById('pp-search-' + PID);
+  var results = document.getElementById('pp-results-' + PID);
+  var noresult= document.getElementById('pp-noresult-' + PID);
+  var hidden  = document.getElementById('pp-hidden-' + PID);
+  var label   = document.getElementById('pp-label-' + PID);
+  var allItems= Array.from(results.querySelectorAll('.pp-item'));
+
+  function openPanel() {
+    panel.style.display = 'flex';
+    search.value = '';
+    filterItems('');
+    setTimeout(function () { search.focus(); }, 30);
+  }
+
+  function closePanel() {
+    panel.style.display = 'none';
+  }
+
+  function filterItems(q) {
+    q = q.toLowerCase().trim();
+    var visible = 0;
+    allItems.forEach(function (item) {
+      var hay = item.dataset.search || (item.dataset.label || '').toLowerCase();
+      var match = !q || hay.indexOf(q) !== -1;
+      item.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    noresult.style.display = visible === 0 ? '' : 'none';
+  }
+
+  function selectItem(value, lbl) {
+    hidden.value = value;
+    label.textContent = lbl || '{{ _("Selecionar paciente…") }}';
+    label.style.color = value ? 'var(--dc-text)' : 'var(--dc-text-muted)';
+    // show/hide clear button
+    var clr = trigger.querySelector('.pp-clear');
+    if (value) {
+      if (!clr) {
+        clr = document.createElement('i');
+        clr.className = 'bi bi-x-circle-fill pp-clear';
+        clr.dataset.ppid = PID;
+        clr.style.cssText = 'color:var(--dc-text-muted);flex-shrink:0;font-size:.8rem';
+        trigger.appendChild(clr);
+        clr.addEventListener('click', clearSelection);
+      }
+    } else if (clr) {
+      clr.remove();
+    }
+    closePanel();
+  }
+
+  function clearSelection(e) {
+    e.stopPropagation();
+    selectItem('', null);
+  }
+
+  trigger.addEventListener('click', function () {
+    panel.style.display === 'none' ? openPanel() : closePanel();
+  });
+
+  search.addEventListener('input', function () {
+    filterItems(this.value);
+  });
+
+  // Keyboard navigation
+  var focusIdx = -1;
+  search.addEventListener('keydown', function (e) {
+    var visible = allItems.filter(function (i) { return i.style.display !== 'none'; });
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusIdx = Math.min(focusIdx + 1, visible.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusIdx = Math.max(focusIdx - 1, -1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (focusIdx >= 0 && visible[focusIdx]) visible[focusIdx].click();
+      return;
+    } else if (e.key === 'Escape') {
+      closePanel(); return;
+    }
+    visible.forEach(function (i, idx) {
+      i.classList.toggle('pp-focused', idx === focusIdx);
+      if (idx === focusIdx) i.scrollIntoView({ block: 'nearest' });
+    });
+  });
+
+  // Click on item
+  results.addEventListener('click', function (e) {
+    var item = e.target.closest('.pp-item');
+    if (item && item.dataset.ppid === PID) {
+      selectItem(item.dataset.value, item.dataset.label);
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', function (e) {
+    if (!wrap.contains(e.target)) closePanel();
+  });
+
+  // Init clear button if pre-selected
+  var existingClear = trigger.querySelector('.pp-clear');
+  if (existingClear) {
+    existingClear.addEventListener('click', clearSelection);
+  }
+})();
+</script>

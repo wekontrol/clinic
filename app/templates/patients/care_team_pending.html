@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Pedidos de Equipa Clínica') }}{% endblock %}
+{% block page_title %}
+  <i class="bi bi-people-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Pedidos de Acesso — Equipa Clínica') }}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <p class="mb-0" style="font-size:.88rem;color:var(--dc-text-muted)">
+    {{ _('Pedidos de partilha de acesso a fichas de pacientes que aguardam aprovação.') }}
+  </p>
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+  </a>
+</div>
+
+{% if pending %}
+<div class="dc-card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="color:var(--dc-text)">
+      <thead>
+        <tr style="color:var(--dc-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border-color:var(--dc-border)">
+          <th>{{ _('Paciente') }}</th>
+          <th>{{ _('Dentista Solicitado') }}</th>
+          <th>{{ _('Pedido Por') }}</th>
+          <th>{{ _('Data') }}</th>
+          <th>{{ _('Notas') }}</th>
+          <th class="text-end">{{ _('Ação') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in pending %}
+        <tr style="border-color:var(--dc-border)">
+          <td>
+            <a href="{{ url_for('patients.detail', patient_id=entry.patient_id) }}"
+               style="color:var(--dc-primary);font-weight:600;text-decoration:none">
+              <i class="bi bi-person-fill me-1"></i>{{ entry.patient.full_name }}
+            </a>
+          </td>
+          <td>
+            <div style="font-weight:600;color:var(--dc-white)">{{ entry.dentist.full_name }}</div>
+            <div style="font-size:.73rem;color:var(--dc-text-muted)">
+              {% if entry.dentist.specialty %}{{ entry.dentist.specialty }}{% endif %}
+            </div>
+          </td>
+          <td style="color:var(--dc-text-muted);font-size:.85rem">{{ entry.requested_by.full_name }}</td>
+          <td style="color:var(--dc-text-muted);font-size:.82rem;white-space:nowrap">
+            {{ entry.created_at.strftime('%d/%m/%Y %H:%M') if entry.created_at else '—' }}
+          </td>
+          <td style="font-size:.82rem;color:var(--dc-text-muted);max-width:180px">
+            {{ entry.notes or '—' }}
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-2 justify-content-end">
+              <form method="POST" action="{{ url_for('patients.care_team_approve', patient_id=entry.patient_id, entry_id=entry.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-success btn-sm">
+                  <i class="bi bi-check-circle-fill me-1"></i>{{ _('Aprovar') }}
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('patients.care_team_reject', patient_id=entry.patient_id, entry_id=entry.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-x-circle-fill me-1"></i>{{ _('Recusar') }}
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="dc-card text-center py-5">
+  <i class="bi bi-check-circle-fill fs-1 d-block mb-3" style="color:var(--dc-success)"></i>
+  <h5 style="color:var(--dc-white)">{{ _('Sem pedidos pendentes') }}</h5>
+  <p style="color:var(--dc-text-muted);font-size:.88rem">{{ _('Todos os pedidos de equipa clínica foram processados.') }}</p>
+</div>
+{% endif %}
+{% endblock %}

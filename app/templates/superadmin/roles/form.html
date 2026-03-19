@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-shaded me-2"></i>{{ title }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('superadmin.roles_index') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar') }}
+  </a>
+</div>
+
+<div class="dc-card p-4" style="max-width:720px">
+  <form method="POST" action="{{ url_for('superadmin.roles_edit', role_id=role.id) if role else url_for('superadmin.roles_new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Name -->
+    <div class="mb-3">
+      <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">
+        {{ _('Nome Interno') }} <span class="text-danger">*</span>
+      </label>
+      <input type="text" name="name" class="form-control"
+             value="{{ role.name if role else '' }}"
+             {% if role and role.name in ['superadmin','clinical_director','dentist','reception','patient'] %}readonly{% endif %}
+             placeholder="ex: gestor_clinico"
+             required pattern="[a-zA-Z0-9_]+" title="{{ _('Apenas letras, números e underscore') }}">
+      <div class="form-text">{{ _('Identificador único, sem espaços. Não pode ser alterado após criação.') }}</div>
+    </div>
+
+    <!-- Display Names -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Designação PT') }} <span class="text-danger">*</span></label>
+        <input type="text" name="display_name_pt" class="form-control"
+               value="{{ role.display_name_pt if role else '' }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Designação EN') }}</label>
+        <input type="text" name="display_name_en" class="form-control"
+               value="{{ role.display_name_en if role else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Designação ES') }}</label>
+        <input type="text" name="display_name_es" class="form-control"
+               value="{{ role.display_name_es if role else '' }}">
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="mb-3">
+      <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Descrição') }}</label>
+      <textarea name="description" class="form-control" rows="2"
+                placeholder="{{ _('Breve descrição das responsabilidades deste perfil…') }}">{{ role.description if role else '' }}</textarea>
+    </div>
+
+    <!-- Permissions -->
+    <div class="mb-4">
+      <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Permissões') }}</label>
+      <div class="dc-card p-3" style="background:var(--dc-bg)">
+        {% set current_perms = (role.permissions or '').split(',') | map('trim') | list if role else [] %}
+        {% set all_perms = [
+          ('all',           _('Acesso total'), _('Superadministradores')),
+          ('clinical',      _('Sessões Clínicas'), _('Registar e consultar sessões, odontograma')),
+          ('users',         _('Utilizadores'), _('Criar e gerir utilizadores do sistema')),
+          ('audit',         _('Auditoria'), _('Ver registo de auditoria e reverter')),
+          ('reports',       _('Relatórios'), _('Dashboard KPIs e relatórios')),
+          ('prescriptions', _('Prescrições'), _('Emitir prescrições médicas')),
+          ('xray',          _('Radiografias'), _('Carregar e visualizar raios-X')),
+          ('appointments',  _('Agendamentos'), _('Marcar e gerir consultas')),
+          ('patients',      _('Pacientes'), _('Criar e editar fichas de pacientes')),
+          ('own_data',      _('Dados Próprios'), _('Portal pessoal — apenas dados do próprio')),
+        ] %}
+        <div class="row g-2">
+          {% for code, label, desc in all_perms %}
+          <div class="col-md-6">
+            <div class="form-check d-flex align-items-start gap-2">
+              <input type="checkbox" class="form-check-input mt-1" name="permissions"
+                     value="{{ code }}" id="perm_{{ code }}"
+                     {% if code in current_perms or (not role and code == '') %}{% endif %}
+                     {% if code in current_perms %}checked{% endif %}>
+              <label class="form-check-label" for="perm_{{ code }}" style="cursor:pointer">
+                <span style="font-size:.85rem;font-weight:500">{{ label }}</span>
+                <br><span style="font-size:.75rem;color:var(--dc-text-muted)">{{ desc }}</span>
+              </label>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="form-text">{{ _('Seleccione as áreas a que os utilizadores com este perfil terão acesso.') }}</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-floppy-fill me-2"></i>{{ _('Guardar') }}
+      </button>
+      <a href="{{ url_for('superadmin.roles_index') }}" class="btn btn-outline-secondary">
+        {{ _('Cancelar') }}
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Sessão') }} {{ sess.session_code }}{% endblock %}
+{% block page_title %}<i class="bi bi-clipboard2-check-fill me-2"></i>{{ sess.session_code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.frozen-badge { background:rgba(255,193,7,.12);color:var(--dc-warning);border:1px solid rgba(255,193,7,.3);border-radius:6px;padding:.3rem .7rem;font-size:.78rem;display:inline-flex;align-items:center;gap:.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-1" style="color:var(--dc-text)">{{ _('Sessão') }}: <span style="color:var(--dc-primary);font-family:monospace">{{ sess.session_code }}</span></h4>
+    <div class="d-flex gap-3 flex-wrap">
+      <span style="color:var(--dc-text-muted);font-size:.83rem"><i class="bi bi-person-fill me-1"></i>
+        <a href="{{ url_for('patients.detail', patient_id=sess.patient_id) }}" style="color:inherit">{{ sess.patient.full_name if sess.patient else '—' }}</a>
+      </span>
+      <span style="color:var(--dc-text-muted);font-size:.83rem"><i class="bi bi-person-badge-fill me-1"></i>{{ sess.dentist.full_name if sess.dentist else '—' }}</span>
+      <span style="color:var(--dc-text-muted);font-size:.83rem"><i class="bi bi-calendar-fill me-1"></i>{{ sess.session_date.strftime('%d/%m/%Y %H:%M') }}</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    {% if sess.status == 'closed' %}
+    <span class="frozen-badge"><i class="bi bi-lock-fill"></i>{{ _('Sessão Fechada — Imutável') }}</span>
+    {% elif sess.status == 'in_progress' %}
+    <span class="badge bg-warning text-dark fs-6">⏳ {{ _('Em Progresso') }}</span>
+    {% endif %}
+    {% if can_edit %}
+    <a href="{{ url_for('sessions.edit', session_id=sess.id) }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-pencil-fill me-1"></i>{{ _('Editar') }}
+    </a>
+    {% endif %}
+    {% if current_user.role in ['superadmin', 'clinical_director'] %}
+    <form method="POST" action="{{ url_for('sessions.delete_session', session_id=sess.id) }}"
+          onsubmit="return confirm('{{ _('ATENÇÃO: Esta acção é irreversível! A sessão e todos os seus dados (prescrições, radiografias, tratamentos) serão apagados permanentemente. Confirma?') }}')" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-danger">
+        <i class="bi bi-trash3-fill me-1"></i>{{ _('Eliminar Sessão') }}
+      </button>
+    </form>
+    {% endif %}
+    <!-- PDF Downloads dropdown -->
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-danger dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="bi bi-file-pdf-fill me-1"></i>PDF
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        {% for lang, label in [('pt','PT'), ('en','EN'), ('es','ES')] %}
+        <li><h6 class="dropdown-header">{{ label }}</h6></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('sessions.pdf_treatment_plan', session_id=sess.id, lang=lang) }}" target="_blank">
+            <i class="bi bi-clipboard2-pulse me-2" style="color:var(--dc-primary)"></i>{{ _('Plano de Tratamento') }}
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('sessions.pdf_consent_form', session_id=sess.id, lang=lang) }}" target="_blank">
+            <i class="bi bi-file-check me-2" style="color:#22c55e"></i>{{ _('Consentimento Informado') }}
+          </a>
+        </li>
+        {% if sess.prescriptions.count() > 0 %}
+        <li>
+          <a class="dropdown-item" href="{{ url_for('sessions.pdf_prescription', session_id=sess.id, lang=lang) }}" target="_blank">
+            <i class="bi bi-capsule-pill me-2" style="color:#f59e0b"></i>{{ _('Receita Médica') }}
+          </a>
+        </li>
+        {% endif %}
+        {% if not loop.last %}<li><hr class="dropdown-divider"></li>{% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+    <a href="{{ url_for('sessions.index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>{{ _('Lista') }}
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left: Clinical notes + treatments + prescriptions -->
+  <div class="col-lg-8">
+
+    <!-- Clinical notes (frozen) -->
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-file-text-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Notas Clínicas') }}</h6>
+      {% macro field_block(label, value) %}
+      <div class="mb-3">
+        <div class="small mb-1" style="color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.7rem">{{ label }}</div>
+        <div style="background:rgba(0,0,0,.08);border-radius:6px;padding:.6rem .8rem;min-height:2.5rem;white-space:pre-wrap;font-size:.88rem;color:var(--dc-text)">{{ value or ('—') }}</div>
+      </div>
+      {% endmacro %}
+      {{ field_block(_('Queixa Principal'), sess.chief_complaint) }}
+      {{ field_block(_('Notas Clínicas'), sess.clinical_notes) }}
+      <div class="row g-3">
+        <div class="col-md-6">{{ field_block(_('Diagnóstico'), sess.diagnosis) }}</div>
+        <div class="col-md-6">{{ field_block(_('Plano de Tratamento'), sess.treatment_plan) }}</div>
+      </div>
+      {% if sess.closed_at %}
+      <div class="mt-2 text-end small" style="color:var(--dc-text-muted)">
+        <i class="bi bi-lock-fill me-1 text-warning"></i>{{ _('Fechada em') }} {{ sess.closed_at.strftime('%d/%m/%Y %H:%M') }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Treatments performed -->
+    <div class="dc-card p-4 mb-4">
+      <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <h6 class="mb-0" style="color:var(--dc-text)"><i class="bi bi-tools me-2" style="color:var(--dc-primary)"></i>{{ _('Tratamentos Realizados') }}</h6>
+        {% if sess.appointment and sess.appointment.is_emergency %}
+        <span class="badge" style="background:rgba(248,113,113,.15);color:var(--dc-danger);border:1px solid rgba(248,113,113,.35);font-size:.72rem;padding:.28rem .65rem">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _('Urgência — majoração aplicada') }}
+        </span>
+        {% endif %}
+      </div>
+      {% if treatments %}
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="color:var(--dc-text)">
+          <thead>
+            <tr style="color:var(--dc-text-muted);font-size:.75rem;border-bottom:1px solid var(--dc-border)">
+              <th class="fw-600">{{ _('Tratamento') }}</th>
+              <th class="text-end">{{ _('Preço Base') }}</th>
+              {% if treatments | selectattr('urgency_surcharge_pct') | list %}
+              <th class="text-end" style="color:var(--dc-danger)"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _('Majoração') }}</th>
+              <th class="text-end" style="color:var(--dc-primary)">{{ _('Total') }}</th>
+              {% else %}
+              <th class="text-end">{{ _('Total') }}</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% set has_surcharge = treatments | selectattr('urgency_surcharge_pct') | list | length > 0 %}
+            {% for st in treatments %}
+            <tr style="border-bottom:1px solid var(--dc-border)">
+              <td style="font-size:.88rem;font-weight:500">{{ st.treatment.name_pt if st.treatment else '—' }}</td>
+              <td class="text-end" style="font-size:.83rem;color:var(--dc-text-muted)">
+                {% if st.base_price is not none %}{{ '%.2f'|format(st.base_price) }} Kz{% else %}—{% endif %}
+              </td>
+              {% if has_surcharge %}
+              <td class="text-end" style="font-size:.83rem;color:var(--dc-danger)">
+                {% if st.urgency_surcharge_pct %}
+                  +{{ '%.2f'|format(st.surcharge_amount) }} Kz
+                  <span class="opacity-60" style="font-size:.75rem">({{ st.urgency_surcharge_pct|int }}%)</span>
+                {% else %}—{% endif %}
+              </td>
+              {% endif %}
+              <td class="text-end" style="font-size:.88rem;font-weight:600;color:{% if st.urgency_surcharge_pct %}var(--dc-danger){% else %}var(--dc-text){% endif %}">
+                {% if st.price_at_time %}{{ '%.2f'|format(st.price_at_time|float) }} Kz{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if treatments | selectattr('price_at_time') | list %}
+          <tfoot>
+            <tr style="border-top:2px solid var(--dc-border)">
+              <td colspan="{% if has_surcharge %}3{% else %}2{% endif %}" class="text-end" style="font-size:.8rem;color:var(--dc-text-muted);padding-top:.5rem">{{ _('Total Tratamentos') }}</td>
+              <td class="text-end fw-700" style="font-size:.92rem;color:var(--dc-primary);padding-top:.5rem">
+                {{ '%.2f'|format(treatments | sum(attribute='price_at_time') | float) }} Kz
+              </td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+      {% else %}
+      <p class="small mb-0" style="color:var(--dc-text-muted)">{{ _('Nenhum tratamento registado.') }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Prescriptions -->
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-prescription2 me-2" style="color:var(--dc-primary)"></i>{{ _('Prescrições') }}</h6>
+      {% if prescriptions %}
+      <div class="table-responsive">
+        <table class="table table-sm" style="color:var(--dc-text)">
+          <thead><tr style="color:var(--dc-text-muted);font-size:.75rem">
+            <th>{{ _('Medicamento') }}</th><th>{{ _('Dosagem') }}</th><th>{{ _('Frequência') }}</th><th>{{ _('Duração') }}</th><th>{{ _('Instruções') }}</th>
+          </tr></thead>
+          <tbody>
+            {% for p in prescriptions %}
+            <tr>
+              <td><strong>{{ p.medicine.name_pt if p.medicine else '—' }}</strong></td>
+              <td>{{ p.dosage or '—' }}</td>
+              <td>{{ p.frequency or '—' }}</td>
+              <td>{{ p.duration or '—' }}</td>
+              <td style="font-size:.8rem">{{ p.instructions or '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="small mb-0" style="color:var(--dc-text-muted)">{{ _('Sem prescrições.') }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Consumíveis -->
+    {% if consumables %}
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-2" style="color:var(--dc-text)">
+        <i class="bi bi-box-seam-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Consumíveis Utilizados') }}
+        <span class="ms-2 badge" style="background:rgba(20,184,166,.12);color:var(--dc-primary);font-size:.68rem;font-weight:600">
+          {{ _('Custo interno') }}
+        </span>
+      </h6>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="color:var(--dc-text)">
+          <thead>
+            <tr style="color:var(--dc-text-muted);font-size:.72rem;border-bottom:1px solid var(--dc-border)">
+              <th>{{ _('Produto') }}</th>
+              <th class="text-center">{{ _('Quantidade') }}</th>
+              <th class="text-end">{{ _('Custo Unitário') }}</th>
+              <th class="text-end">{{ _('Custo Total') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sc in consumables %}
+            <tr style="border-bottom:1px solid var(--dc-border)">
+              <td style="font-size:.85rem">
+                <i class="bi bi-{{ sc.product.category_icon if sc.product else 'box-seam' }} me-1" style="color:var(--dc-primary)"></i>
+                {{ sc.product.name_pt if sc.product else '—' }}
+                <span style="font-size:.72rem;color:var(--dc-text-muted);margin-left:.4rem">
+                  {{ sc.product.category_label if sc.product else '' }}
+                </span>
+              </td>
+              <td class="text-center" style="font-size:.83rem;font-weight:600">
+                {{ sc.quantity|int }} {{ sc.product.unit if sc.product else '' }}
+              </td>
+              <td class="text-end" style="font-size:.78rem;color:var(--dc-text-muted)">
+                {% if sc.unit_cost_snapshot %}{{ '%.2f'|format(sc.unit_cost_snapshot|float) }} Kz{% else %}—{% endif %}
+              </td>
+              <td class="text-end" style="font-size:.85rem;font-weight:700;color:var(--dc-text)">
+                {% if sc.total_cost %}{{ '%.2f'|format(sc.total_cost) }} Kz{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="border-top:2px solid var(--dc-border)">
+              <td colspan="3" class="text-end" style="font-size:.78rem;color:var(--dc-text-muted);padding-top:.5rem">
+                {{ _('Custo Operacional Total') }}
+                <span class="ms-1" style="font-size:.7rem;color:var(--dc-text-muted);opacity:.7">{{ _('(não facturado)') }}</span>
+              </td>
+              <td class="text-end fw-700" style="font-size:.92rem;color:var(--dc-primary);padding-top:.5rem">
+                {{ '%.2f'|format(consumables | sum(attribute='total_cost') | float) }} Kz
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- X-Rays -->
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-image-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Radiografias') }}</h6>
+      {% if xrays %}
+      <div class="row g-2">
+        {% for xr in xrays %}
+        <div class="col-6 col-md-3">
+          <div class="dc-card p-2 text-center">
+            {% if xr.file_type == 'pdf' %}
+            <a href="{{ url_for('main.serve_upload', filename=xr.file_path) }}" target="_blank" style="color:var(--dc-text);text-decoration:none">
+              <i class="bi bi-file-pdf-fill fs-2 text-danger"></i>
+              <div class="small text-truncate mt-1" style="font-size:.7rem">{{ xr.file_name }}</div>
+            </a>
+            {% else %}
+            <a href="{{ url_for('main.serve_upload', filename=xr.file_path) }}" target="_blank">
+              <img src="{{ url_for('main.serve_upload', filename=xr.file_path) }}" alt="{{ xr.file_name }}"
+                   style="width:100%;height:70px;object-fit:cover;border-radius:4px">
+            </a>
+            {% endif %}
+            {% if xr.notes %}<div class="small mt-1" style="color:var(--dc-text-muted);font-size:.7rem">{{ xr.notes }}</div>{% endif %}
+            <div class="small mt-1" style="color:var(--dc-text-muted);font-size:.65rem">{{ xr.uploaded_at.strftime('%d/%m/%Y') if xr.uploaded_at else '' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="small mb-0" style="color:var(--dc-text-muted)">{{ _('Sem radiografias nesta sessão.') }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Addenda (separate linked records, never overwrites original data) -->
+    {% set addenda_list = sess.addenda.all() %}
+    {% if addenda_list %}
+    <div class="dc-card p-4 mb-4" style="border:1px solid rgba(255,193,7,.2)">
+      <h6 class="mb-3" style="color:var(--dc-warning)"><i class="bi bi-pencil-square me-2"></i>{{ _('Adendas do Diretor Clínico') }}</h6>
+      {% for ad in addenda_list %}
+      <div class="mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}" style="border-color:var(--dc-border)!important">
+        <div class="small mb-1" style="color:var(--dc-text-muted)">
+          <i class="bi bi-person-badge-fill me-1"></i>{{ ad.author.full_name if ad.author else '—' }}
+          &nbsp;·&nbsp;{{ ad.created_at.strftime('%d/%m/%Y %H:%M') if ad.created_at else '' }}
+        </div>
+        <div style="white-space:pre-wrap;font-size:.88rem;color:var(--dc-text)">{{ ad.text }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if can_addendum and addendum_form %}
+    <div class="dc-card p-4 mb-4" style="border:1px solid rgba(255,193,7,.3)">
+      <h6 class="mb-3" style="color:var(--dc-warning)"><i class="bi bi-pencil-square me-2"></i>{{ _('Adicionar Adenda') }}</h6>
+      <p class="small mb-2" style="color:var(--dc-text-muted)">
+        <i class="bi bi-info-circle me-1"></i>{{ _('Registo separado — não altera os dados originais da sessão.') }}
+      </p>
+      <form method="POST" action="{{ url_for('sessions.add_addendum', session_id=sess.id) }}">
+        {{ addendum_form.hidden_tag() }}
+        {{ addendum_form.addendum_text(class='form-control form-control-sm mb-2', rows=3, placeholder=_('Texto da adenda...')) }}
+        <button class="btn btn-warning btn-sm" type="submit">
+          <i class="bi bi-check2-square me-1"></i>{{ _('Guardar Adenda') }}
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right: odontogram (read-only) + meta -->
+  <div class="col-lg-4">
+    <!-- Odontogram (read-only) -->
+    <div class="dc-card p-3 mb-4">
+      <h6 class="mb-2" style="color:var(--dc-text)"><i class="bi bi-grid-3x3-gap-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Odontograma') }}</h6>
+      {% with is_readonly=True %}
+        {% include 'sessions/_odontogram.html' %}
+      {% endwith %}
+    </div>
+
+    <!-- Vitals read-only display -->
+    {% set has_vitals = sess.bp_systolic or sess.heart_rate or sess.temperature or sess.weight_kg or sess.oxygen_saturation %}
+    {% if has_vitals %}
+    <div class="dc-card p-3 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-heart-pulse-fill me-2" style="color:var(--dc-danger)"></i>{{ _('Sinais Vitais') }}</h6>
+      <div class="row g-2" style="font-size:.83rem">
+        {% if sess.bp_systolic %}
+        <div class="col-6 col-md-4">
+          <span style="color:var(--dc-text-muted)">{{ _('PA') }}:</span>
+          <strong style="color:var(--dc-text)">{{ sess.bp_systolic }}/{{ sess.bp_diastolic or '?' }} mmHg</strong>
+        </div>
+        {% endif %}
+        {% if sess.heart_rate %}
+        <div class="col-6 col-md-4">
+          <span style="color:var(--dc-text-muted)">{{ _('F.C.') }}:</span>
+          <strong style="color:var(--dc-text)">{{ sess.heart_rate }} bpm</strong>
+        </div>
+        {% endif %}
+        {% if sess.temperature %}
+        <div class="col-6 col-md-4">
+          <span style="color:var(--dc-text-muted)">{{ _('Temp.') }}:</span>
+          <strong style="color:var(--dc-text)">{{ '%.1f'|format(sess.temperature) }} °C</strong>
+        </div>
+        {% endif %}
+        {% if sess.weight_kg %}
+        <div class="col-6 col-md-4">
+          <span style="color:var(--dc-text-muted)">{{ _('Peso') }}:</span>
+          <strong style="color:var(--dc-text)">{{ '%.1f'|format(sess.weight_kg) }} kg</strong>
+        </div>
+        {% endif %}
+        {% if sess.oxygen_saturation %}
+        <div class="col-6 col-md-4">
+          <span style="color:var(--dc-text-muted)">SpO₂:</span>
+          <strong style="color:var(--dc-text)">{{ sess.oxygen_saturation }}%</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Session metadata -->
+    <div class="dc-card p-3">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-info-circle-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Informações') }}</h6>
+      <dl class="mb-0" style="font-size:.83rem">
+        <dt style="color:var(--dc-text-muted)">{{ _('Código') }}</dt>
+        <dd style="font-family:monospace;color:var(--dc-text)">{{ sess.session_code }}</dd>
+        <dt style="color:var(--dc-text-muted)">{{ _('Dentista Responsável') }}</dt>
+        <dd style="color:var(--dc-text)">{{ sess.dentist.full_name if sess.dentist else '—' }}</dd>
+        {% if sess.appointment_id %}
+        <dt style="color:var(--dc-text-muted)">{{ _('Agendamento') }}</dt>
+        <dd><a href="{{ url_for('scheduling.calendar') }}" style="color:var(--dc-primary)">#{{ sess.appointment_id }}</a></dd>
+        {% endif %}
+        <dt style="color:var(--dc-text-muted)">{{ _('Criada em') }}</dt>
+        <dd style="color:var(--dc-text)">{{ sess.created_at.strftime('%d/%m/%Y %H:%M') if sess.created_at else '—' }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<!-- Odontogram read-only rendering (SVG-aware) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var data = {{ (sess.odontogram_data or {})|tojson }};
+  var FINDING_COLORS = {
+    healthy: '#10b981', caries: '#f87171', extraction: '#9ca3af',
+    crown: '#fbbf24', bridge: '#60a5fa', implant: '#34d399',
+    missing: '#374151', root_canal: '#a78bfa'
+  };
+  for (var num in data) {
+    var finding = typeof data[num] === 'string' ? data[num] : (data[num].finding || '');
+    var color = FINDING_COLORS[finding];
+    if (!color) continue;
+    var findingRect = document.getElementById('tooth-finding-' + num);
+    var toothRect   = document.getElementById('tooth-' + num);
+    if (findingRect) {
+      findingRect.setAttribute('fill', color);
+      findingRect.setAttribute('opacity', '0.75');
+    }
+    if (toothRect) {
+      toothRect.setAttribute('stroke', color);
+      toothRect.setAttribute('stroke-width', '2.5');
+    }
+  }
+});
+</script>
+{% endblock %}

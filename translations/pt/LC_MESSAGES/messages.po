@@ -1,0 +1,494 @@
+# Portuguese (default) translations for DentalCare Pro
+msgid ""
+msgstr ""
+"Project-Id-Version: DentalCare Pro 1.0
+"
+"Report-Msgid-Bugs-To: admin@clinic.local
+"
+"POT-Creation-Date: 2024-01-01 00:00+0000
+"
+"PO-Revision-Date: 2024-01-01 00:00+0000
+"
+"Language: pt
+"
+"MIME-Version: 1.0
+"
+"Content-Type: text/plain; charset=UTF-8
+"
+"Content-Transfer-Encoding: 8bit
+"
+
+msgid "Sistema Clínico"
+msgstr "Sistema Clínico"
+
+msgid "Principal"
+msgstr "Principal"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Pacientes"
+msgstr "Pacientes"
+
+msgid "Sessões"
+msgstr "Sessões"
+
+msgid "Agenda"
+msgstr "Agenda"
+
+msgid "Agendamentos"
+msgstr "Agendamentos"
+
+msgid "Catálogo"
+msgstr "Catálogo"
+
+msgid "Tratamentos"
+msgstr "Tratamentos"
+
+msgid "Medicamentos"
+msgstr "Medicamentos"
+
+msgid "Administração"
+msgstr "Administração"
+
+msgid "Utilizadores"
+msgstr "Utilizadores"
+
+msgid "Registo de Auditoria"
+msgstr "Registo de Auditoria"
+
+msgid "Sistema"
+msgstr "Sistema"
+
+msgid "Monitor do Servidor"
+msgstr "Monitor do Servidor"
+
+msgid "Backup SMB"
+msgstr "Backup SMB"
+
+msgid "Meu Portal"
+msgstr "Meu Portal"
+
+msgid "Meu Histórico"
+msgstr "Meu Histórico"
+
+msgid "Downloads"
+msgstr "Downloads"
+
+msgid "Login"
+msgstr "Login"
+
+msgid "Utilizador"
+msgstr "Utilizador"
+
+msgid "Senha"
+msgstr "Senha"
+
+msgid "Lembrar-me"
+msgstr "Lembrar-me"
+
+msgid "Entrar"
+msgstr "Entrar"
+
+msgid "Utilizador ou senha inválidos."
+msgstr "Utilizador ou senha inválidos."
+
+msgid "Conta desativada. Contacte o administrador."
+msgstr "Conta desativada. Contacte o administrador."
+
+msgid "Sessão encerrada com sucesso."
+msgstr "Sessão encerrada com sucesso."
+
+msgid "Meu Perfil"
+msgstr "Meu Perfil"
+
+msgid "Alterar Senha"
+msgstr "Alterar Senha"
+
+msgid "Senha Atual"
+msgstr "Senha Atual"
+
+msgid "Nova Senha"
+msgstr "Nova Senha"
+
+msgid "Confirmar Nova Senha"
+msgstr "Confirmar Nova Senha"
+
+msgid "Alterar Senha"
+msgstr "Alterar Senha"
+
+msgid "Senha atual incorreta."
+msgstr "Senha atual incorreta."
+
+msgid "Senha alterada com sucesso!"
+msgstr "Senha alterada com sucesso!"
+
+msgid "Mínimo 6 caracteres"
+msgstr "Mínimo 6 caracteres"
+
+msgid "A senha deve ter pelo menos 6 caracteres."
+msgstr "A senha deve ter pelo menos 6 caracteres."
+
+msgid "Segurança da Conta"
+msgstr "Segurança da Conta"
+
+msgid "As suas senhas são armazenadas com encriptação pbkdf2:sha256. Nunca partilhe a sua senha."
+msgstr "As suas senhas são armazenadas com encriptação pbkdf2:sha256. Nunca partilhe a sua senha."
+
+msgid "Estado das Salas"
+msgstr "Estado das Salas"
+
+msgid "Sala"
+msgstr "Sala"
+
+msgid "Disponível"
+msgstr "Disponível"
+
+msgid "Em Uso"
+msgstr "Em Uso"
+
+msgid "Emergência"
+msgstr "Emergência"
+
+msgid "Pacientes Ativos"
+msgstr "Pacientes Ativos"
+
+msgid "Sessões Clínicas"
+msgstr "Sessões Clínicas"
+
+msgid "Dentistas Ativos"
+msgstr "Dentistas Ativos"
+
+msgid "Agendamentos Hoje"
+msgstr "Agendamentos Hoje"
+
+msgid "Sessões Recentes"
+msgstr "Sessões Recentes"
+
+msgid "Código"
+msgstr "Código"
+
+msgid "Paciente"
+msgstr "Paciente"
+
+msgid "Dentista"
+msgstr "Dentista"
+
+msgid "Estado"
+msgstr "Estado"
+
+msgid "Data"
+msgstr "Data"
+
+msgid "Atividade Recente (Auditoria)"
+msgstr "Atividade Recente (Auditoria)"
+
+msgid "Ver Tudo"
+msgstr "Ver Tudo"
+
+msgid "Ação"
+msgstr "Ação"
+
+msgid "Tabela"
+msgstr "Tabela"
+
+msgid "Descrição"
+msgstr "Descrição"
+
+msgid "Hora"
+msgstr "Hora"
+
+msgid "Nenhuma atividade registada"
+msgstr "Nenhuma atividade registada"
+
+msgid "Nenhuma sessão registada"
+msgstr "Nenhuma sessão registada"
+
+msgid "Nenhuma sala configurada"
+msgstr "Nenhuma sala configurada"
+
+msgid "Novo Tratamento"
+msgstr "Novo Tratamento"
+
+msgid "Gestão do catálogo de tratamentos (trilingue)"
+msgstr "Gestão do catálogo de tratamentos (trilingue)"
+
+msgid "Ativos"
+msgstr "Ativos"
+
+msgid "Todos"
+msgstr "Todos"
+
+msgid "tratamento(s)"
+msgstr "tratamento(s)"
+
+msgid "Nome (PT)"
+msgstr "Nome (PT)"
+
+msgid "Categoria"
+msgstr "Categoria"
+
+msgid "Preço"
+msgstr "Preço"
+
+msgid "Duração"
+msgstr "Duração"
+
+msgid "Ações"
+msgstr "Ações"
+
+msgid "Nenhum tratamento encontrado"
+msgstr "Nenhum tratamento encontrado"
+
+msgid "Campos obrigatórios em 3 idiomas:"
+msgstr "Campos obrigatórios em 3 idiomas:"
+
+msgid "O nome do tratamento deve ser inserido em Português, Inglês e Espanhol."
+msgstr "O nome do tratamento deve ser inserido em Português, Inglês e Espanhol."
+
+msgid "Nome do Tratamento"
+msgstr "Nome do Tratamento"
+
+msgid "Nome em Português"
+msgstr "Nome em Português"
+
+msgid "Detalhes"
+msgstr "Detalhes"
+
+msgid "Guardar"
+msgstr "Guardar"
+
+msgid "Cancelar"
+msgstr "Cancelar"
+
+msgid "Voltar"
+msgstr "Voltar"
+
+msgid "Novo Medicamento"
+msgstr "Novo Medicamento"
+
+msgid "Gestão do catálogo de medicamentos (trilingue)"
+msgstr "Gestão do catálogo de medicamentos (trilingue)"
+
+msgid "medicamento(s)"
+msgstr "medicamento(s)"
+
+msgid "Princípio Ativo"
+msgstr "Princípio Ativo"
+
+msgid "Forma"
+msgstr "Forma"
+
+msgid "Nenhum medicamento encontrado"
+msgstr "Nenhum medicamento encontrado"
+
+msgid "O nome do medicamento deve ser inserido em Português, Inglês e Espanhol."
+msgstr "O nome do medicamento deve ser inserido em Português, Inglês e Espanhol."
+
+msgid "Nome do Medicamento"
+msgstr "Nome do Medicamento"
+
+msgid "Dados Farmacológicos"
+msgstr "Dados Farmacológicos"
+
+msgid "Instruções de Uso"
+msgstr "Instruções de Uso"
+
+msgid "Contraindicações"
+msgstr "Contraindicações"
+
+msgid "Gerir contas e permissões do sistema"
+msgstr "Gerir contas e permissões do sistema"
+
+msgid "Novo Utilizador"
+msgstr "Novo Utilizador"
+
+msgid "Nome"
+msgstr "Nome"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Perfil"
+msgstr "Perfil"
+
+msgid "Desde"
+msgstr "Desde"
+
+msgid "Ativo"
+msgstr "Ativo"
+
+msgid "Inativo"
+msgstr "Inativo"
+
+msgid "Nenhum utilizador encontrado"
+msgstr "Nenhum utilizador encontrado"
+
+msgid "Auditoria"
+msgstr "Auditoria"
+
+msgid "Registo completo de todas as ações Create/Update/Delete"
+msgstr "Registo completo de todas as ações Create/Update/Delete"
+
+msgid "Filtrar"
+msgstr "Filtrar"
+
+msgid "Limpar"
+msgstr "Limpar"
+
+msgid "registos"
+msgstr "registos"
+
+msgid "Registo ID"
+msgstr "Registo ID"
+
+msgid "Data/Hora"
+msgstr "Data/Hora"
+
+msgid "Nenhum registo encontrado"
+msgstr "Nenhum registo encontrado"
+
+msgid "Ligação segura — Dados protegidos"
+msgstr "Ligação segura — Dados protegidos"
+
+msgid "Sistema de Gestão Clínica"
+msgstr "Sistema de Gestão Clínica"
+
+msgid "Bem-vindo ao seu portal de saúde"
+msgstr "Bem-vindo ao seu portal de saúde"
+
+msgid "O Seu Historial de Tratamentos"
+msgstr "O Seu Historial de Tratamentos"
+
+msgid "Dentista não especificado"
+msgstr "Dentista não especificado"
+
+msgid "Ainda não tem sessões registadas"
+msgstr "Ainda não tem sessões registadas"
+
+msgid "O seu historial de tratamentos aparecerá aqui"
+msgstr "O seu historial de tratamentos aparecerá aqui"
+
+msgid "O seu perfil de paciente ainda não está associado. Contacte a recepção."
+msgstr "O seu perfil de paciente ainda não está associado. Contacte a recepção."
+
+msgid "Meus Pacientes"
+msgstr "Meus Pacientes"
+
+msgid "Minhas Sessões"
+msgstr "Minhas Sessões"
+
+msgid "Minhas Sessões Recentes"
+msgstr "Minhas Sessões Recentes"
+
+msgid "Calendário disponível na Fase 2"
+msgstr "Calendário disponível na Fase 2"
+
+msgid "FullCalendar.js com 2 salas"
+msgstr "FullCalendar.js com 2 salas"
+
+msgid "Fase 2"
+msgstr "Fase 2"
+
+msgid "Fase 3"
+msgstr "Fase 3"
+
+msgid "Fase 4"
+msgstr "Fase 4"
+
+msgid "Sair"
+msgstr "Sair"
+
+msgid "Tratamento criado com sucesso!"
+msgstr "Tratamento criado com sucesso!"
+
+msgid "Tratamento atualizado com sucesso!"
+msgstr "Tratamento atualizado com sucesso!"
+
+msgid "Estado do tratamento alterado."
+msgstr "Estado do tratamento alterado."
+
+msgid "Medicamento criado com sucesso!"
+msgstr "Medicamento criado com sucesso!"
+
+msgid "Medicamento atualizado com sucesso!"
+msgstr "Medicamento atualizado com sucesso!"
+
+msgid "Estado do medicamento alterado."
+msgstr "Estado do medicamento alterado."
+
+msgid "Utilizador criado! Senha inicial: changeme123"
+msgstr "Utilizador criado! Senha inicial: changeme123"
+
+msgid "Nome de utilizador já existe."
+msgstr "Nome de utilizador já existe."
+
+msgid "Utilizador atualizado com sucesso!"
+msgstr "Utilizador atualizado com sucesso!"
+
+msgid "Nome Completo"
+msgstr "Nome Completo"
+
+msgid "Telefone"
+msgstr "Telefone"
+
+msgid "Especialidade"
+msgstr "Especialidade"
+
+msgid "Senha inicial: "
+msgstr "Senha inicial: "
+
+msgid "o utilizador deve alterar no primeiro acesso."
+msgstr "o utilizador deve alterar no primeiro acesso."
+
+msgid "Senha"
+msgstr "Senha"
+msgid "Alternar tema"
+msgstr "Alternar tema"
+
+msgid "Claro"
+msgstr "Claro"
+
+msgid "Escuro"
+msgstr "Escuro"
+
+msgid "Acesso Negado"
+msgstr "Acesso Negado"
+
+msgid "Não tem permissão para aceder a esta página."
+msgstr "Não tem permissão para aceder a esta página."
+
+msgid "Voltar ao Dashboard"
+msgstr "Voltar ao Dashboard"
+
+msgid "Página não encontrada"
+msgstr "Página não encontrada"
+
+msgid "A página que procura não existe ou foi movida."
+msgstr "A página que procura não existe ou foi movida."
+
+
+msgid "Description in English"
+msgstr "Description in English"
+
+msgid "Descripción en Español"
+msgstr "Descripción en Español"
+
+msgid "Name in English"
+msgstr "Name in English"
+
+msgid "Nombre en Español"
+msgstr "Nombre en Español"
+
+msgid "Instructions in English"
+msgstr "Instructions in English"
+
+msgid "Instrucciones en Español"
+msgstr "Instrucciones en Español"
+
+msgid "Contraindications in English"
+msgstr "Contraindications in English"
+
+msgid "Contraindicaciones en Español"
+msgstr "Contraindicaciones en Español"
+

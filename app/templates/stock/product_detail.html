@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name_pt }}{% endblock %}
+{% block page_title %}
+<i class="bi bi-{{ product.category_icon }} me-2" style="color:var(--dc-primary)"></i>{{ product.name_pt }}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.mv-row { border-bottom: 1px solid var(--dc-border); }
+.mv-row:last-child { border-bottom: none; }
+.mv-in  { color: var(--dc-success); }
+.mv-out { color: var(--dc-danger); }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
+.info-item label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--dc-text-muted); display: block; margin-bottom: .2rem; }
+.info-item span  { font-size: .9rem; font-weight: 600; color: var(--dc-text); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Top action bar ── #}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <a href="{{ url_for('stock.index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>{{ _('Voltar ao Stock') }}
+  </a>
+  {% if can_manage %}
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('stock.add_movement', product_id=product.id, type='in') }}"
+       class="btn btn-sm btn-success">
+      <i class="bi bi-arrow-down-circle-fill me-1"></i>{{ _('Entrada') }}
+    </a>
+    {% if current_user.role in ['superadmin','clinical_director'] %}
+    <a href="{{ url_for('stock.add_movement', product_id=product.id, type='out') }}"
+       class="btn btn-sm btn-danger">
+      <i class="bi bi-arrow-up-circle-fill me-1"></i>{{ _('Saída') }}
+    </a>
+    <a href="{{ url_for('stock.edit_product', product_id=product.id) }}"
+       class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-pencil-fill me-1"></i>{{ _('Editar') }}
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{# ── Product info ── #}
+<div class="dc-card p-4 mb-4">
+  <div class="d-flex align-items-start gap-3 mb-3 flex-wrap">
+    <div style="width:56px;height:56px;border-radius:12px;background:rgba(20,184,166,.12);display:flex;align-items:center;justify-content:center;font-size:1.7rem;color:var(--dc-primary);flex-shrink:0">
+      <i class="bi bi-{{ product.category_icon }}"></i>
+    </div>
+    <div class="flex-grow-1">
+      <h5 class="mb-1" style="color:var(--dc-text)">{{ product.name_pt }}</h5>
+      <div style="font-size:.8rem;color:var(--dc-text-muted)">
+        <i class="bi bi-{{ product.category_icon }} me-1"></i>{{ product.category_label }}
+        {% if product.supplier %} · <i class="bi bi-truck me-1"></i>{{ product.supplier }}{% endif %}
+      </div>
+    </div>
+    {# Stock status badge #}
+    {% if product.qty_current|float == 0 %}
+      <span class="badge" style="background:rgba(248,113,113,.15);color:var(--dc-danger);border:1px solid rgba(248,113,113,.35);font-size:.75rem;padding:.35rem .75rem">
+        <i class="bi bi-slash-circle-fill me-1"></i>{{ _('Esgotado') }}
+      </span>
+    {% elif product.is_low_stock %}
+      <span class="badge" style="background:rgba(251,191,36,.12);color:var(--dc-warning);border:1px solid rgba(251,191,36,.35);font-size:.75rem;padding:.35rem .75rem">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _('Stock Baixo') }}
+      </span>
+    {% else %}
+      <span class="badge" style="background:rgba(34,197,94,.12);color:var(--dc-success);border:1px solid rgba(34,197,94,.3);font-size:.75rem;padding:.35rem .75rem">
+        <i class="bi bi-check-circle-fill me-1"></i>{{ _('Disponível') }}
+      </span>
+    {% endif %}
+  </div>
+
+  <div class="info-grid">
+    <div class="info-item">
+      <label>{{ _('Stock Actual') }}</label>
+      <span style="font-size:1.4rem;color:{% if product.is_low_stock %}var(--dc-warning){% elif product.qty_current|float==0 %}var(--dc-danger){% else %}var(--dc-success){% endif %}">
+        {{ product.qty_current|int }} <small style="font-size:.7rem">{{ product.unit }}</small>
+      </span>
+    </div>
+    <div class="info-item">
+      <label>{{ _('Stock Mínimo') }}</label>
+      <span>{{ product.qty_minimum|int }} {{ product.unit }}</span>
+    </div>
+    <div class="info-item">
+      <label>{{ _('Custo Unitário') }}</label>
+      <span>{% if product.unit_cost %}{{ '{:,.2f}'.format(product.unit_cost|float) }} Kz{% else %}—{% endif %}</span>
+    </div>
+    <div class="info-item">
+      <label>{{ _('Valor em Stock') }}</label>
+      <span style="color:var(--dc-primary)">{% if product.unit_cost %}{{ '{:,.2f}'.format(product.stock_value) }} Kz{% else %}—{% endif %}</span>
+    </div>
+    <div class="info-item">
+      <label>{{ _('Unidade') }}</label>
+      <span>{{ product.unit }}</span>
+    </div>
+    <div class="info-item">
+      <label>{{ _('Estado') }}</label>
+      <span>{% if product.is_active %}<span style="color:var(--dc-success)">{{ _('Activo') }}</span>{% else %}<span style="color:var(--dc-danger)">{{ _('Inactivo') }}</span>{% endif %}</span>
+    </div>
+  </div>
+
+  {% if product.notes %}
+  <div class="mt-3 p-3 rounded-2" style="background:var(--dc-bg);border:1px solid var(--dc-border);font-size:.83rem;color:var(--dc-text-muted)">
+    <i class="bi bi-chat-left-text-fill me-1"></i>{{ product.notes }}
+  </div>
+  {% endif %}
+</div>
+
+{# ── Movement history ── #}
+<div class="dc-card p-4">
+  <h6 style="color:var(--dc-text);margin-bottom:1rem">
+    <i class="bi bi-clock-history me-2" style="color:var(--dc-primary)"></i>{{ _('Histórico de Movimentos') }}
+  </h6>
+
+  {% if movements %}
+  <div class="table-responsive">
+    <table class="table table-sm mb-0" style="color:var(--dc-text)">
+      <thead>
+        <tr style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dc-text-muted);border-bottom:2px solid var(--dc-border)">
+          <th>{{ _('Data') }}</th>
+          <th>{{ _('Tipo') }}</th>
+          <th>{{ _('Motivo') }}</th>
+          <th class="text-center">{{ _('Qtd.') }}</th>
+          <th class="text-center">{{ _('Saldo') }}</th>
+          <th>{{ _('Notas') }}</th>
+          <th>{{ _('Fatura') }}</th>
+          <th>{{ _('Utilizador') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mv in movements %}
+        <tr class="mv-row">
+          <td style="font-size:.78rem;color:var(--dc-text-muted);white-space:nowrap">
+            {{ mv.created_at.strftime('%d/%m/%Y %H:%M') }}
+          </td>
+          <td>
+            {% if mv.movement_type == 'in' %}
+            <span class="badge" style="background:rgba(34,197,94,.12);color:var(--dc-success);font-size:.7rem">
+              <i class="bi bi-arrow-down-circle-fill me-1"></i>{{ _('Entrada') }}
+            </span>
+            {% else %}
+            <span class="badge" style="background:rgba(248,113,113,.12);color:var(--dc-danger);font-size:.7rem">
+              <i class="bi bi-arrow-up-circle-fill me-1"></i>{{ _('Saída') }}
+            </span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem">{{ mv.reason_label }}</td>
+          <td class="text-center fw-700 {% if mv.movement_type=='in' %}mv-in{% else %}mv-out{% endif %}" style="font-size:.88rem">
+            {% if mv.movement_type=='in' %}+{% else %}−{% endif %}{{ mv.quantity|int }} {{ product.unit }}
+          </td>
+          <td class="text-center" style="font-size:.82rem;color:var(--dc-text-muted)">
+            {% if mv.qty_after is not none %}{{ mv.qty_after|int }} {{ product.unit }}{% else %}—{% endif %}
+          </td>
+          <td style="font-size:.78rem;color:var(--dc-text-muted);max-width:140px">{{ mv.notes or '—' }}</td>
+          <td style="font-size:.75rem">
+            {% if mv.invoice_file_path %}
+            <a href="{{ url_for('stock.serve_invoice', mv_id=mv.id) }}" target="_blank"
+               class="d-inline-flex align-items-center gap-1"
+               style="color:var(--dc-primary);text-decoration:none" title="{{ mv.invoice_file_name }}">
+              {% if mv.invoice_file_name and mv.invoice_file_name.lower().endswith('.pdf') %}
+                <i class="bi bi-file-pdf-fill" style="color:var(--dc-danger)"></i>
+              {% else %}
+                <i class="bi bi-image-fill"></i>
+              {% endif %}
+              <span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">
+                {{ mv.invoice_file_name or _('Ver') }}
+              </span>
+            </a>
+            {% else %}
+            <span style="color:var(--dc-text-muted);opacity:.4">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.78rem;color:var(--dc-text-muted)">
+            {{ mv.created_by.full_name if mv.created_by else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="mb-0" style="color:var(--dc-text-muted);font-size:.85rem">{{ _('Nenhum movimento registado.') }}</p>
+  {% endif %}
+</div>
+
+{# ── Danger zone (Superadmin only) ── #}
+{% if current_user.role == 'superadmin' and product.is_active %}
+<div class="mt-4 p-3 rounded-3" style="border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.05)">
+  <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dc-danger);margin-bottom:.75rem">
+    <i class="bi bi-exclamation-octagon-fill me-1"></i>{{ _('Zona Perigosa') }}
+  </div>
+  <form method="post" action="{{ url_for('stock.delete_product', product_id=product.id) }}"
+        onsubmit="return confirm('{{ _('Desactivar este produto?') }}')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-archive-fill me-1"></i>{{ _('Desactivar Produto') }}
+    </button>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}

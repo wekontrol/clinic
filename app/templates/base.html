@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}" data-dc-theme="{{ session.get('theme', 'dark') }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_settings.app_name }}{% endblock %} — {{ app_settings.app_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/dental.css') }}" rel="stylesheet">
+  <style>
+    [data-dc-theme="dark"] {
+      --dc-bg:        {{ app_settings.bg_dark }};
+      --dc-sidebar:   {{ app_settings.sidebar_dark }};
+      --dc-card:      {{ app_settings.card_dark }};
+      --dc-card-bg:   {{ app_settings.card_dark }};
+      --dc-border:    {{ app_settings.border_dark }};
+      --dc-text:      {{ app_settings.text_dark }};
+      --dc-primary:   {{ app_settings.primary_dark }};
+      --dc-primary-d: color-mix(in srgb, {{ app_settings.primary_dark }} 75%, black);
+      --dc-success:   {{ app_settings.success_dark }};
+      --dc-danger:    {{ app_settings.danger_dark }};
+      --dc-warning:   {{ app_settings.warning_dark }};
+    }
+    [data-dc-theme="light"] {
+      --dc-bg:        {{ app_settings.bg_light }};
+      --dc-card:      {{ app_settings.card_light }};
+      --dc-card-bg:   {{ app_settings.card_light }};
+      --dc-border:    {{ app_settings.border_light }};
+      --dc-text:      {{ app_settings.text_light }};
+      --dc-primary:   {{ app_settings.primary_light }};
+      --dc-primary-d: color-mix(in srgb, {{ app_settings.primary_light }} 75%, black);
+      --dc-success:   {{ app_settings.success_light }};
+      --dc-danger:    {{ app_settings.danger_light }};
+      --dc-warning:   {{ app_settings.warning_light }};
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+<aside class="dc-sidebar" id="dcSidebar">
+
+  <!-- Brand -->
+  <div class="dc-brand">
+    <div class="dc-brand-icon">
+      {% if app_settings.app_logo %}
+        <img src="{{ url_for('superadmin.logo_file', filename=app_settings.app_logo) }}"
+             alt="{{ app_settings.app_name }}"
+             style="width:36px;height:36px;object-fit:contain;border-radius:6px;">
+      {% else %}
+        <i class="bi bi-heart-pulse-fill"></i>
+      {% endif %}
+    </div>
+    <div class="flex-fill">
+      <div class="dc-brand-name">{{ app_settings.app_name }}</div>
+      <div class="dc-brand-sub">{{ _('Sistema Clínico') }}</div>
+    </div>
+    <!-- Close button visible only on mobile -->
+    <button id="sidebarClose" class="dc-sidebar-close-btn" title="{{ _('Fechar menu') }}" aria-label="Fechar">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="dc-nav">
+
+    {% set role = current_user.role %}
+
+    <!-- MAIN -->
+    <div class="dc-nav-section">{{ _('Principal') }}</div>
+    <a href="{{ url_for('main.dashboard') }}"
+       class="dc-nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i> {{ _('Dashboard') }}
+    </a>
+
+    <!-- CLINICAL (non-patient) -->
+    {% if role in ['superadmin', 'clinical_director', 'dentist', 'reception'] %}
+    <div class="dc-nav-section mt-2">{{ _('Clínica') }}</div>
+    {% endif %}
+    {% if role in ['superadmin', 'clinical_director', 'dentist', 'reception'] %}
+    <a href="{{ url_for('patients.index') }}"
+       class="dc-nav-item {% if request.endpoint == 'patients.index' or request.endpoint in ['patients.new','patients.edit','patients.detail'] %}active{% endif %}">
+      <i class="bi bi-people-fill"></i> {{ _('Pacientes') }}
+    </a>
+    {% endif %}
+    {% if role in ['superadmin', 'clinical_director'] %}
+    <a href="{{ url_for('patients.care_team_pending') }}"
+       class="dc-nav-item {% if request.endpoint == 'patients.care_team_pending' %}active{% endif %}">
+      <i class="bi bi-person-check-fill"></i> {{ _('Equipa Clínica') }}
+    </a>
+    {% endif %}
+    {% if role in ['superadmin', 'clinical_director', 'dentist'] %}
+    <a href="{{ url_for('sessions.index') }}"
+       class="dc-nav-item {% if request.endpoint and 'sessions.' in request.endpoint and 'audit' not in request.endpoint and 'evolution' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-clipboard2-pulse-fill"></i> {{ _('Sessões') }}
+    </a>
+    {% endif %}
+    <!-- SCHEDULE -->
+    {% if role in ['superadmin', 'clinical_director', 'reception', 'dentist'] %}
+    <div class="dc-nav-section mt-2">{{ _('Agenda') }}</div>
+    {% endif %}
+    {% if role in ['superadmin', 'clinical_director', 'reception'] %}
+    <a href="{{ url_for('scheduling.calendar') }}"
+       class="dc-nav-item {% if request.endpoint and 'scheduling.' in request.endpoint and 'emergency' not in request.endpoint and 'room' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-calendar3-fill"></i> {{ _('Agendamentos') }}
+    </a>
+    {% endif %}
+    {% if role in ['superadmin', 'clinical_director', 'reception', 'dentist'] %}
+    <a href="{{ url_for('scheduling.rooms') }}"
+       class="dc-nav-item {% if request.endpoint and 'rooms' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-door-open-fill"></i> {{ _('Salas') }}
+    </a>
+    {% endif %}
+    {% if role in ['superadmin', 'clinical_director', 'reception', 'dentist'] %}
+    <a href="{{ url_for('scheduling.emergency') }}"
+       class="dc-nav-item {% if request.endpoint and 'emergency' in request.endpoint %}active{% endif %}"
+       style="color:var(--dc-danger)">
+      <i class="bi bi-exclamation-octagon-fill"></i> {{ _('Urgência') }}
+    </a>
+    {% endif %}
+
+    <!-- CATALOGUE -->
+    {% if role in ['superadmin', 'clinical_director', 'dentist'] %}
+    <div class="dc-nav-section mt-2">{{ _('Catálogo') }}</div>
+    <a href="{{ url_for('admin.treatments') }}"
+       class="dc-nav-item {% if 'treatments' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-tools"></i> {{ _('Tratamentos') }}
+    </a>
+    <a href="{{ url_for('admin.medicines') }}"
+       class="dc-nav-item {% if 'medicine' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-capsule-pill"></i> {{ _('Medicamentos') }}
+    </a>
+    {% endif %}
+
+    <!-- STOCK -->
+    {% if role in ['superadmin', 'clinical_director', 'dentist', 'receptionist'] %}
+    <div class="dc-nav-section mt-2">{{ _('Armazém') }}</div>
+    <a href="{{ url_for('stock.index') }}"
+       class="dc-nav-item {% if request.endpoint and 'stock.' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-box-seam-fill"></i> {{ _('Stock') }}
+      {# Low stock alert badge #}
+    </a>
+    {% endif %}
+
+    <!-- ADMIN -->
+    {% if role in ['superadmin', 'clinical_director'] %}
+    <div class="dc-nav-section mt-2">{{ _('Administração') }}</div>
+    <a href="{{ url_for('admin.users') }}"
+       class="dc-nav-item {% if 'user' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-person-gear"></i> {{ _('Utilizadores') }}
+    </a>
+    <a href="{{ url_for('admin.audit_log') }}"
+       class="dc-nav-item {% if 'audit' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-shield-lock-fill"></i> {{ _('Registo de Auditoria') }}
+    </a>
+    <a href="{{ url_for('admin.pdf_templates') }}"
+       class="dc-nav-item {% if 'pdf_template' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-file-pdf-fill"></i> {{ _('Edição de PDF') }}
+    </a>
+    {% endif %}
+
+    <!-- SUPERADMIN SYSTEM -->
+    {% if role == 'superadmin' %}
+    <div class="dc-nav-section mt-2">{{ _('Sistema') }}</div>
+    <a href="{{ url_for('superadmin.system_settings') }}"
+       class="dc-nav-item {% if request.endpoint == 'superadmin.system_settings' %}active{% endif %}">
+      <i class="bi bi-sliders"></i> {{ _('Configurações') }}
+    </a>
+    <a href="{{ url_for('superadmin.index') }}"
+       class="dc-nav-item {% if request.endpoint == 'superadmin.index' %}active{% endif %}">
+      <i class="bi bi-cpu-fill"></i> {{ _('Monitor do Servidor') }}
+    </a>
+    <a href="{{ url_for('superadmin.roles_index') }}"
+       class="dc-nav-item {% if 'roles' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-shield-shaded"></i> {{ _('Perfis e Permissões') }}
+    </a>
+    {% endif %}
+
+    <!-- PATIENT PORTAL -->
+    {% if role == 'patient' %}
+    <div class="dc-nav-section mt-2">{{ _('Meu Portal') }}</div>
+    <a href="{{ url_for('main.dashboard') }}"
+       class="dc-nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+      <i class="bi bi-person-heart"></i> {{ _('Meu Histórico') }}
+    </a>
+    <a href="{{ url_for('main.patient_downloads') }}"
+       class="dc-nav-item {% if request.endpoint == 'main.patient_downloads' %}active{% endif %}">
+      <i class="bi bi-file-pdf-fill"></i> {{ _('Downloads PDF') }}
+    </a>
+    {% endif %}
+
+  </nav>
+
+  <!-- User Footer -->
+  <div class="dc-sidebar-footer">
+    <div class="dc-user-info">
+      <div class="dc-user-avatar">{{ current_user.full_name[:2].upper() }}</div>
+      <div class="flex-fill overflow-hidden">
+        <div class="dc-user-name text-truncate">{{ current_user.full_name }}</div>
+        <div class="dc-user-role">
+          <span class="badge bg-{{ current_user.role_badge_class() }} text-{{ 'dark' if current_user.role == 'reception' else 'light' }}" style="font-size:.6rem">
+            {{ current_user.role_display() }}
+          </span>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-secondary p-1" title="{{ _('Sair') }}">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ═══ TOPBAR ════════════════════════════════════════════════════════════ -->
+<header class="dc-topbar">
+  <button class="btn d-md-none" id="sidebarToggle"
+          style="color:var(--dc-text);padding:6px 9px;border:1px solid var(--dc-border);border-radius:8px;background:transparent;flex-shrink:0"
+          aria-label="Abrir menu">
+    <i class="bi bi-list" style="font-size:1.3rem;line-height:1;display:block"></i>
+  </button>
+  <span class="page-title">{% block page_title %}{% endblock %}</span>
+
+  <div class="topbar-actions">
+    <!-- Dark / Light mode toggle -->
+    <a href="{{ url_for('auth.toggle_theme') }}"
+       class="theme-toggle"
+       title="{{ _('Alternar tema') }}">
+      {% if session.get('theme', 'dark') == 'dark' %}
+        <i class="bi bi-sun-fill"></i><span style="font-size:.72rem;font-weight:600;margin-left:2px">{{ _('Claro') }}</span>
+      {% else %}
+        <i class="bi bi-moon-stars-fill"></i><span style="font-size:.72rem;font-weight:600;margin-left:2px">{{ _('Escuro') }}</span>
+      {% endif %}
+    </a>
+
+    <!-- Language switcher -->
+    <div class="lang-switcher">
+      <a href="{{ url_for('auth.set_lang', lang='pt') }}"
+         class="lang-btn {% if get_locale() == 'pt' %}active{% endif %}">PT</a>
+      <a href="{{ url_for('auth.set_lang', lang='en') }}"
+         class="lang-btn {% if get_locale() == 'en' %}active{% endif %}">EN</a>
+      <a href="{{ url_for('auth.set_lang', lang='es') }}"
+         class="lang-btn {% if get_locale() == 'es' %}active{% endif %}">ES</a>
+    </div>
+
+    <!-- Profile -->
+    <a href="{{ url_for('auth.profile') }}" class="btn btn-sm btn-outline-secondary" title="{{ _('Meu Perfil') }}">
+      <i class="bi bi-person-circle"></i>
+    </a>
+  </div>
+</header>
+
+<!-- Sidebar backdrop (mobile) -->
+<div class="dc-sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+<main class="dc-main">
+  <div class="dc-content">
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="mb-3">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-{% if category == 'success' %}check-circle-fill{% elif category == 'danger' %}x-circle-fill{% elif category == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  /* ── Sidebar + Overlay ── */
+  var toggle  = document.getElementById('sidebarToggle');
+  var sidebar = document.getElementById('dcSidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  var closeBtn= document.getElementById('sidebarClose');
+
+  function isMobile() { return window.innerWidth < 769; }
+
+  function openSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden'; // prevent page scroll when menu open
+  }
+
+  function closeSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function toggleSidebar() {
+    sidebar && sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  }
+
+  if (toggle)   toggle.addEventListener('click',   toggleSidebar);
+  if (overlay)  overlay.addEventListener('click',  closeSidebar);
+  if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+
+  /* Close on nav-item click on mobile (page navigation) */
+  if (sidebar) {
+    sidebar.querySelectorAll('.dc-nav-item').forEach(function(el) {
+      el.addEventListener('click', function() { if (isMobile()) closeSidebar(); });
+    });
+  }
+
+  /* Close sidebar on resize to desktop */
+  window.addEventListener('resize', function() {
+    if (!isMobile()) closeSidebar();
+  });
+
+  /* Auto-wrap tables for horizontal scroll on mobile */
+  if (isMobile()) {
+    document.querySelectorAll('.dc-content table.table').forEach(function(tbl) {
+      if (tbl.closest('.dc-table-wrap') || tbl.closest('.table-responsive')) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'dc-table-wrap';
+      tbl.parentNode.insertBefore(wrap, tbl);
+      wrap.appendChild(tbl);
+    });
+  }
+
+  /* Sync Bootstrap data-bs-theme */
+  var theme = document.documentElement.getAttribute('data-dc-theme') || 'dark';
+  document.documentElement.setAttribute('data-bs-theme', theme);
+})();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,519 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Sessões Clínicas') }}{% endblock %}
+{% block page_title %}<i class="bi bi-clipboard2-pulse-fill me-2"></i>{{ _('Sessões Clínicas') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── filter panel ────────────────────────────────────────── */
+.filter-card {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.2rem;
+}
+/* mobile: collapsible filter toggle */
+.filter-toggle {
+  display: none;
+  width: 100%;
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .6rem 1rem;
+  color: var(--dc-text);
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: .75rem;
+}
+@media (max-width: 767px) {
+  .filter-toggle { display: flex; align-items: center; gap: .5rem; }
+  .filter-card   { display: none; margin-bottom: .75rem; }
+  .filter-card.open { display: block; }
+}
+
+/* ── mobile session cards ────────────────────────────────── */
+.sess-cards { display: none; }
+@media (max-width: 767px) {
+  .sess-cards        { display: flex; flex-direction: column; gap: .6rem; }
+  .sess-table-wrap   { display: none; }
+}
+.sess-card {
+  background: var(--dc-card);
+  border: 1px solid var(--dc-border);
+  border-radius: 10px;
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  transition: background .15s;
+}
+.sess-card:active { background: var(--dc-surface); }
+.sess-card-body   { flex: 1; min-width: 0; }
+.sess-card-code   {
+  font-family: monospace;
+  font-size: .7rem;
+  color: var(--dc-primary);
+  background: rgba(74,158,255,.12);
+  border-radius: 4px;
+  padding: .1rem .4rem;
+  display: inline-block;
+  margin-bottom: .35rem;
+  white-space: nowrap;
+}
+.sess-card-patient {
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--dc-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sess-card-meta {
+  font-size: .75rem;
+  color: var(--dc-text-muted);
+  margin-top: .2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .8rem;
+}
+.sess-card-meta span { display: flex; align-items: center; gap: .25rem; }
+.sess-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .4rem;
+  flex-shrink: 0;
+}
+
+/* ── bulk bar ─────────────────────────────────────────────── */
+.bulk-bar {
+  position: sticky;
+  bottom: 1.2rem;
+  z-index: 200;
+  display: none;
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-primary);
+  border-radius: 12px;
+  padding: .75rem 1.2rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.bulk-bar.visible { display: flex; }
+.bulk-bar .sel-count {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--dc-primary);
+  white-space: nowrap;
+}
+.row-cb { width: 36px; }
+tr:has(.row-cb:checked) { background: rgba(74,158,255,.06); }
+.table-check { cursor: pointer; width: 16px; height: 16px; accent-color: var(--dc-primary); }
+.sess-card.selected { background: rgba(74,158,255,.08); border-color: rgba(74,158,255,.35); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0" style="color:var(--dc-text)">{{ _('Sessões Clínicas') }}</h4>
+    <small style="color:var(--dc-text-muted)">{{ _('Historial imutável de consultas') }}</small>
+  </div>
+  {% if current_user.role in ['superadmin','clinical_director','dentist'] %}
+  <a href="{{ url_for('sessions.new') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-circle-fill me-1"></i>{{ _('Nova Sessão') }}
+  </a>
+  {% endif %}
+</div>
+
+<!-- ── FILTROS TOGGLE (mobile only) ── -->
+<button class="filter-toggle" id="filterToggleBtn" onclick="toggleFilters()">
+  <i class="bi bi-funnel-fill" style="color:var(--dc-primary)"></i>
+  <span>{{ _('Filtros') }}</span>
+  {% if f_patient or f_dentist or f_date_from or f_date_to or f_status %}
+  <span class="badge bg-primary ms-auto" style="font-size:.65rem">{{ _('Activo') }}</span>
+  {% else %}
+  <i class="bi bi-chevron-down ms-auto" id="filterChevron"></i>
+  {% endif %}
+</button>
+
+<!-- ── FILTROS PANEL ── -->
+<div class="filter-card {% if f_patient or f_dentist or f_date_from or f_date_to or f_status %}open{% endif %}" id="filterCard">
+  <form method="GET" id="filterForm" class="row g-2 align-items-end">
+    <div class="col-md-3 col-6">
+      <label class="form-label form-label-sm mb-1" style="font-size:.75rem;color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.05em">
+        <i class="bi bi-person-fill me-1"></i>{{ _('Paciente') }}
+      </label>
+      <input type="text" name="patient_q" value="{{ f_patient }}"
+             class="form-control form-control-sm" placeholder="{{ _('Pesquisar…') }}">
+    </div>
+
+    {% if current_user.role in ['superadmin','clinical_director'] %}
+    <div class="col-md-3 col-6">
+      <label class="form-label form-label-sm mb-1" style="font-size:.75rem;color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.05em">
+        <i class="bi bi-person-badge-fill me-1"></i>{{ _('Dentista') }}
+      </label>
+      <select name="dentist_id" class="form-select form-select-sm">
+        <option value="">{{ _('Todos') }}</option>
+        {% for d in dentists %}
+        <option value="{{ d.id }}" {% if f_dentist == d.id|string %}selected{% endif %}>{{ d.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <div class="col-md-2 col-6">
+      <label class="form-label form-label-sm mb-1" style="font-size:.75rem;color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.05em">
+        <i class="bi bi-calendar-fill me-1"></i>{{ _('Data de') }}
+      </label>
+      <input type="date" name="date_from" value="{{ f_date_from }}" class="form-control form-control-sm">
+    </div>
+
+    <div class="col-md-2 col-6">
+      <label class="form-label form-label-sm mb-1" style="font-size:.75rem;color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.05em">
+        <i class="bi bi-calendar-check-fill me-1"></i>{{ _('Data até') }}
+      </label>
+      <input type="date" name="date_to" value="{{ f_date_to }}" class="form-control form-control-sm">
+    </div>
+
+    <div class="col-md-2 col-6">
+      <label class="form-label form-label-sm mb-1" style="font-size:.75rem;color:var(--dc-text-muted);text-transform:uppercase;letter-spacing:.05em">
+        <i class="bi bi-circle-half me-1"></i>{{ _('Estado') }}
+      </label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">{{ _('Todos') }}</option>
+        <option value="in_progress" {% if f_status=='in_progress' %}selected{% endif %}>{{ _('Em Progresso') }}</option>
+        <option value="closed"      {% if f_status=='closed' %}selected{% endif %}>{{ _('Fechada') }}</option>
+        <option value="scheduled"   {% if f_status=='scheduled' %}selected{% endif %}>{{ _('Agendada') }}</option>
+        <option value="cancelled"   {% if f_status=='cancelled' %}selected{% endif %}>{{ _('Cancelada') }}</option>
+      </select>
+    </div>
+
+    <div class="col-12 col-md-auto d-flex gap-1 align-items-end">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-funnel-fill me-1"></i>{{ _('Filtrar') }}
+      </button>
+      <a href="{{ url_for('sessions.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- ── BULK FORM wrapper ── -->
+<form method="POST" action="{{ url_for('sessions.bulk_action') }}" id="bulkForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if f_status %}<input type="hidden" name="status" value="{{ f_status }}">{% endif %}
+  {% if f_dentist %}<input type="hidden" name="dentist_id" value="{{ f_dentist }}">{% endif %}
+  {% if f_patient %}<input type="hidden" name="patient_q" value="{{ f_patient }}">{% endif %}
+  {% if f_date_from %}<input type="hidden" name="date_from" value="{{ f_date_from }}">{% endif %}
+  {% if f_date_to %}<input type="hidden" name="date_to" value="{{ f_date_to }}">{% endif %}
+  <input type="hidden" name="action" id="bulkAction">
+  <input type="hidden" name="new_status" id="bulkNewStatus">
+
+  {% set _sl = {'scheduled':_('Agendada'),'in_progress':_('Em Progresso'),'closed':_('Fechada'),'completed':_('Concluída'),'cancelled':_('Cancelada')} %}
+  {% set _sc = {'scheduled':'primary','in_progress':'warning','closed':'success','completed':'success','cancelled':'secondary'} %}
+  {% set _st = {'scheduled':'','in_progress':'text-dark','closed':'','completed':'','cancelled':''} %}
+
+  <!-- ══ MOBILE CARDS ════════════════════════════════════════════ -->
+  <div class="sess-cards" id="sessCards">
+    {% for s in sessions.items %}
+    <div class="sess-card" id="mcard-{{ s.id }}">
+      <!-- Checkbox -->
+      <div style="padding-top:.1rem">
+        <input type="checkbox" name="session_ids" value="{{ s.id }}"
+               class="table-check row-cb-input-m"
+               onclick="event.stopPropagation()"
+               onchange="updateBar()">
+      </div>
+
+      <!-- Body -->
+      <div class="sess-card-body" onclick="location.href='{{ url_for('sessions.detail', session_id=s.id) }}'">
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <span class="sess-card-code">{{ s.session_code }}</span>
+          <span class="badge bg-{{ _sc.get(s.status,'secondary') }} {{ _st.get(s.status,'') }}"
+                style="font-size:.65rem">
+            {{ _sl.get(s.status, s.status) }}
+          </span>
+        </div>
+        <div class="sess-card-patient">{{ s.patient.full_name if s.patient else '—' }}</div>
+        <div class="sess-card-meta">
+          <span><i class="bi bi-person-badge-fill"></i>{{ s.dentist.full_name if s.dentist else '—' }}</span>
+          <span><i class="bi bi-calendar3"></i>{{ s.session_date.strftime('%d/%m/%Y') if s.session_date else '—' }}</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="sess-card-actions">
+        {% if s.status != 'closed' %}
+        <a href="{{ url_for('sessions.edit', session_id=s.id) }}"
+           class="btn btn-sm btn-primary py-1 px-2"
+           onclick="event.stopPropagation()" title="{{ _('Editar') }}">
+          <i class="bi bi-pencil-fill" style="font-size:.75rem"></i>
+        </a>
+        {% endif %}
+        <a href="{{ url_for('sessions.detail', session_id=s.id) }}"
+           class="btn btn-sm btn-outline-secondary py-1 px-2"
+           onclick="event.stopPropagation()">
+          <i class="bi bi-info-circle-fill" style="font-size:.75rem"></i>
+          <span style="font-size:.7rem">{{ _('Detalhes') }}</span>
+        </a>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="color:var(--dc-text-muted)">
+      <i class="bi bi-clipboard2-x fs-3 d-block mb-2 opacity-50"></i>
+      {{ _('Nenhuma sessão encontrada.') }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ══ DESKTOP TABLE ════════════════════════════════════════════ -->
+  <div class="dc-card p-0 sess-table-wrap">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" style="color:var(--dc-text)">
+        <thead style="border-bottom:1px solid var(--dc-border)">
+          <tr style="color:var(--dc-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">
+            <th class="row-cb px-3 py-2">
+              <input type="checkbox" class="table-check" id="checkAll" title="{{ _('Seleccionar tudo') }}">
+            </th>
+            <th class="px-3 py-2">{{ _('Código') }}</th>
+            <th class="px-3 py-2">{{ _('Paciente') }}</th>
+            <th class="px-3 py-2">{{ _('Dentista') }}</th>
+            <th class="px-3 py-2">{{ _('Data') }}</th>
+            <th class="px-3 py-2">{{ _('Estado') }}</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sessions.items %}
+          <tr style="cursor:pointer" onclick="location.href='{{ url_for('sessions.detail', session_id=s.id) }}'">
+            <td class="row-cb px-3 py-2" onclick="event.stopPropagation()">
+              <input type="checkbox" name="session_ids" value="{{ s.id }}"
+                     class="table-check row-cb-input" onchange="updateBar()">
+            </td>
+            <td class="px-3 py-2">
+              <span class="badge" style="background:rgba(74,158,255,.15);color:var(--dc-primary);font-family:monospace">
+                {{ s.session_code }}
+              </span>
+            </td>
+            <td class="px-3 py-2">
+              <a href="{{ url_for('patients.detail', patient_id=s.patient_id) }}"
+                 onclick="event.stopPropagation()"
+                 style="color:var(--dc-text);text-decoration:none">
+                {{ s.patient.full_name if s.patient else '—' }}
+              </a>
+            </td>
+            <td class="px-3 py-2" style="color:var(--dc-text-muted)">{{ s.dentist.full_name if s.dentist else '—' }}</td>
+            <td class="px-3 py-2" style="color:var(--dc-text-muted);white-space:nowrap">{{ s.session_date.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td class="px-3 py-2">
+              <span class="badge bg-{{ _sc.get(s.status,'secondary') }} {{ _st.get(s.status,'') }}"
+                    style="font-size:.72rem">
+                {{ _sl.get(s.status, s.status) }}
+              </span>
+            </td>
+            <td class="px-3 py-2 text-end" onclick="event.stopPropagation()">
+              {% if s.status != 'closed' %}
+              <a href="{{ url_for('sessions.edit', session_id=s.id) }}"
+                 class="btn btn-sm btn-outline-primary py-0 px-2 me-1">
+                <i class="bi bi-pencil-fill"></i>
+              </a>
+              {% endif %}
+              <a href="{{ url_for('sessions.detail', session_id=s.id) }}"
+                 class="btn btn-sm btn-outline-secondary py-0 px-2">
+                <i class="bi bi-eye-fill"></i>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5" style="color:var(--dc-text-muted)">
+              <i class="bi bi-clipboard2-x fs-3 d-block mb-2 opacity-50"></i>
+              {{ _('Nenhuma sessão encontrada.') }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if sessions.pages > 1 %}
+    <div class="d-flex justify-content-center py-3">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if sessions.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('sessions.index', page=sessions.prev_num,
+               status=f_status, dentist_id=f_dentist, patient_q=f_patient,
+               date_from=f_date_from, date_to=f_date_to) }}">‹</a>
+          </li>
+          {% endif %}
+          <li class="page-item disabled">
+            <span class="page-link">{{ sessions.page }} / {{ sessions.pages }}</span>
+          </li>
+          {% if sessions.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('sessions.index', page=sessions.next_num,
+               status=f_status, dentist_id=f_dentist, patient_q=f_patient,
+               date_from=f_date_from, date_to=f_date_to) }}">›</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Mobile pagination (below cards) -->
+  {% if sessions.pages > 1 %}
+  <div class="d-flex justify-content-center py-3 d-md-none">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if sessions.has_prev %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('sessions.index', page=sessions.prev_num,
+             status=f_status, dentist_id=f_dentist, patient_q=f_patient,
+             date_from=f_date_from, date_to=f_date_to) }}">‹ {{ _('Anterior') }}</a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled">
+          <span class="page-link">{{ sessions.page }}/{{ sessions.pages }}</span>
+        </li>
+        {% if sessions.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('sessions.index', page=sessions.next_num,
+             status=f_status, dentist_id=f_dentist, patient_q=f_patient,
+             date_from=f_date_from, date_to=f_date_to) }}">{{ _('Seguinte') }} ›</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+  <!-- ── BARRA DE AÇÕES EM LOTE ── -->
+  <div class="bulk-bar mt-3" id="bulkBar">
+    <span class="sel-count"><i class="bi bi-check2-square me-1"></i><span id="selCount">0</span> {{ _('seleccionada(s)') }}</span>
+
+    <div class="dropdown">
+      <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
+              data-bs-toggle="dropdown">
+        <i class="bi bi-arrow-repeat me-1"></i>{{ _('Alterar Estado') }}
+      </button>
+      <ul class="dropdown-menu">
+        <li><h6 class="dropdown-header">{{ _('Novo Estado') }}</h6></li>
+        <li><button type="button" class="dropdown-item"
+            onclick="submitBulk('set_status','in_progress')">
+          <span class="badge bg-warning text-dark me-2">●</span>{{ _('Em Progresso') }}
+        </button></li>
+        <li><button type="button" class="dropdown-item"
+            onclick="submitBulk('set_status','closed')">
+          <span class="badge bg-success me-2">●</span>{{ _('Fechada') }}
+        </button></li>
+        <li><button type="button" class="dropdown-item"
+            onclick="submitBulk('set_status','scheduled')">
+          <span class="badge bg-primary me-2">●</span>{{ _('Agendada') }}
+        </button></li>
+        <li><button type="button" class="dropdown-item"
+            onclick="submitBulk('set_status','cancelled')">
+          <span class="badge bg-secondary me-2">●</span>{{ _('Cancelada') }}
+        </button></li>
+      </ul>
+    </div>
+
+    {% if current_user.role in ['superadmin','clinical_director'] %}
+    <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete()">
+      <i class="bi bi-trash3-fill me-1"></i>{{ _('Eliminar Seleccionadas') }}
+    </button>
+    {% endif %}
+
+    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" onclick="clearSelection()">
+      <i class="bi bi-x-lg me-1"></i>{{ _('Cancelar') }}
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+
+  /* ── filter toggle (mobile) ──────────────────────────────── */
+  function toggleFilters() {
+    var card = document.getElementById('filterCard');
+    var chev = document.getElementById('filterChevron');
+    var open = card.classList.toggle('open');
+    if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+  }
+  window.toggleFilters = toggleFilters;
+
+  /* ── bulk selection ──────────────────────────────────────── */
+  var checkAll   = document.getElementById('checkAll');
+  var bulkBar    = document.getElementById('bulkBar');
+  var selCountEl = document.getElementById('selCount');
+  var bulkActionEl    = document.getElementById('bulkAction');
+  var bulkNewStatusEl = document.getElementById('bulkNewStatus');
+  var bulkForm        = document.getElementById('bulkForm');
+
+  function allCBs() {
+    return Array.from(document.querySelectorAll('.row-cb-input, .row-cb-input-m'));
+  }
+
+  function updateBar() {
+    var checked = allCBs().filter(function(c){ return c.checked; });
+    var n = checked.length;
+    selCountEl.textContent = n;
+    bulkBar.classList.toggle('visible', n > 0);
+    /* sync desktop checkAll state */
+    if (checkAll) {
+      var total = document.querySelectorAll('.row-cb-input').length;
+      checkAll.indeterminate = n > 0 && n < total;
+      checkAll.checked = total > 0 && n === total;
+    }
+    /* highlight mobile cards */
+    document.querySelectorAll('.row-cb-input-m').forEach(function(cb) {
+      var card = cb.closest('.sess-card');
+      if (card) card.classList.toggle('selected', cb.checked);
+    });
+  }
+  window.updateBar = updateBar;
+
+  if (checkAll) {
+    checkAll.addEventListener('change', function() {
+      document.querySelectorAll('.row-cb-input').forEach(function(c){ c.checked = checkAll.checked; });
+      updateBar();
+    });
+  }
+  document.querySelectorAll('.row-cb-input').forEach(function(cb){
+    cb.addEventListener('change', updateBar);
+  });
+
+  function clearSelection() {
+    allCBs().forEach(function(c){ c.checked = false; });
+    if (checkAll) checkAll.checked = false;
+    updateBar();
+  }
+  window.clearSelection = clearSelection;
+
+  function submitBulk(action, status) {
+    bulkActionEl.value    = action;
+    bulkNewStatusEl.value = status || '';
+    bulkForm.submit();
+  }
+  window.submitBulk = submitBulk;
+
+  function confirmDelete() {
+    var n = allCBs().filter(function(c){ return c.checked; }).length;
+    if (confirm('ATENÇÃO: Irá eliminar permanentemente ' + n + ' sessão(ões) e todos os seus dados. Confirma?')) {
+      submitBulk('delete', '');
+    }
+  }
+  window.confirmDelete = confirmDelete;
+})();
+</script>
+{% endblock %}
