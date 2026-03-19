@@ -187,40 +187,40 @@ def _styles(accent=None):
         accent = TEAL
     return {
         'doc_title':    ParagraphStyle('DocTitle',
-            fontName=F_BOLD, fontSize=10, textColor=WHITE,
-            alignment=TA_CENTER, leading=13, spaceAfter=0, spaceBefore=0),
+            fontName=F_BOLD, fontSize=12, textColor=WHITE,
+            alignment=TA_CENTER, leading=15, spaceAfter=0, spaceBefore=0),
         'clinic_name':  ParagraphStyle('ClinicName',
-            fontName=F_BOLD, fontSize=10, textColor=WHITE, spaceAfter=1, leading=13),
+            fontName=F_BOLD, fontSize=12, textColor=WHITE, spaceAfter=2, leading=14),
         'clinic_sub':   ParagraphStyle('ClinicSub',
-            fontName=F_REG, fontSize=7.5, textColor=colors.HexColor('#a7f3d0'), spaceAfter=1),
+            fontName=F_REG, fontSize=9, textColor=colors.HexColor('#a7f3d0'), spaceAfter=1),
         'clinic_contact': ParagraphStyle('ClinicContact',
-            fontName=F_REG, fontSize=6.5, textColor=colors.HexColor('#99f6e4')),
+            fontName=F_REG, fontSize=7.5, textColor=colors.HexColor('#99f6e4')),
         'section':      ParagraphStyle('Section',
-            fontName=F_BOLD, fontSize=7.5, textColor=accent, alignment=TA_LEFT),
+            fontName=F_BOLD, fontSize=9, textColor=WHITE, alignment=TA_LEFT),
         'body':         ParagraphStyle('Body',
-            fontName=F_REG, fontSize=8, textColor=DARK, leading=12),
+            fontName=F_REG, fontSize=9, textColor=DARK, leading=13.5),
         'body_j':       ParagraphStyle('BodyJ',
-            fontName=F_REG, fontSize=8, textColor=DARK, leading=12, alignment=TA_JUSTIFY),
+            fontName=F_REG, fontSize=9, textColor=DARK, leading=13.5, alignment=TA_JUSTIFY),
         'label':        ParagraphStyle('Label',
-            fontName=F_BOLD, fontSize=7, textColor=GREY),
+            fontName=F_BOLD, fontSize=8, textColor=GREY),
         'label_val':    ParagraphStyle('LabelVal',
-            fontName=F_REG, fontSize=8, textColor=DARK),
+            fontName=F_REG, fontSize=9, textColor=DARK),
         'sig_name':     ParagraphStyle('SigName',
-            fontName=F_BOLD, fontSize=7.5, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
+            fontName=F_BOLD, fontSize=8.5, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
         'sig_label':    ParagraphStyle('SigLabel',
-            fontName=F_REG, fontSize=7, textColor=GREY, alignment=TA_CENTER),
+            fontName=F_REG, fontSize=7.5, textColor=GREY, alignment=TA_CENTER),
         'tbl_hdr':      ParagraphStyle('TblHdr',
-            fontName=F_BOLD, fontSize=7, textColor=WHITE),
+            fontName=F_BOLD, fontSize=8, textColor=WHITE),
         'tbl_body':     ParagraphStyle('TblBody',
-            fontName=F_REG, fontSize=7.5, textColor=DARK),
+            fontName=F_REG, fontSize=8, textColor=DARK),
         'small':        ParagraphStyle('Small',
-            fontName=F_REG, fontSize=6.5, textColor=GREY),
+            fontName=F_REG, fontSize=7.5, textColor=GREY),
         'small_c':      ParagraphStyle('SmallC',
-            fontName=F_REG, fontSize=6.5, textColor=GREY_MID, alignment=TA_CENTER),
+            fontName=F_REG, fontSize=7.5, textColor=GREY_MID, alignment=TA_CENTER),
         'total':        ParagraphStyle('Total',
-            fontName=F_BOLD, fontSize=8, textColor=DARK, alignment=TA_RIGHT),
+            fontName=F_BOLD, fontSize=9, textColor=DARK, alignment=TA_RIGHT),
         'total_val':    ParagraphStyle('TotalVal',
-            fontName=F_BOLD, fontSize=9, textColor=accent, alignment=TA_RIGHT),
+            fontName=F_BOLD, fontSize=10, textColor=accent, alignment=TA_RIGHT),
         'rp_big':       ParagraphStyle('RpBig',
             fontName=F_BOLD, fontSize=22, textColor=colors.HexColor('#d1fae5'),
             alignment=TA_CENTER),
@@ -341,8 +341,8 @@ def _make_canvas_class(show_pn=True, accent_color=None, watermark='',
 # ─── Shared layout helpers ────────────────────────────────────────────────────
 
 def _section_hdr(text, st, W, accent):
-    """Left-accent strip + teal-tinted bg section header."""
-    strip = Table([['']], colWidths=[3])
+    """Left-accent strip + teal-tinted bg section header with enhanced styling."""
+    strip = Table([['']], colWidths=[4 * mm])
     strip.setStyle(TableStyle([
         ('BACKGROUND',   (0, 0), (-1, -1), accent),
         ('TOPPADDING',   (0, 0), (-1, -1), 0),
@@ -350,15 +350,15 @@ def _section_hdr(text, st, W, accent):
         ('LEFTPADDING',  (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
-    label = Table([[Paragraph(text.upper(), st['section'])]], colWidths=[W - 3])
+    label = Table([[Paragraph(text.upper(), st['section'])]], colWidths=[W - 4 * mm])
     label.setStyle(TableStyle([
-        ('BACKGROUND',   (0, 0), (-1, -1), SECTION_BG),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING',   (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+        ('BACKGROUND',   (0, 0), (-1, -1), accent),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 7),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING',   (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
     ]))
-    wrapper = Table([[strip, label]], colWidths=[3, W - 3])
+    wrapper = Table([[strip, label]], colWidths=[4 * mm, W - 4 * mm])
     wrapper.setStyle(TableStyle([
         ('LEFTPADDING',  (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -375,12 +375,12 @@ def _info_box(rows, st, col_widths):
              Paragraph(str(val or '—'), st['label_val'])] for lbl, val in rows]
     cmds = [
         ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING',   (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('LINEBELOW',    (0, 0), (-1, -1), 0.4, BORDER),
-        ('BOX',          (0, 0), (-1, -1), 0.5, BORDER),
+        ('TOPPADDING',   (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 7),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 7),
+        ('LINEBELOW',    (0, 0), (-1, -1), 0.5, BORDER),
+        ('BOX',          (0, 0), (-1, -1), 0.7, BORDER),
     ]
     for i in range(len(rows)):
         cmds.append(('BACKGROUND', (0, i), (-1, i),
@@ -436,10 +436,11 @@ def _header_table(st, W, locale, settings, upload_folder, type_name, acc, doc_ti
     left_items = []
     if logo_img:
         left_items.append(logo_img)
-        left_items.append(Spacer(1, 1 * mm))
+        left_items.append(Spacer(1, 2 * mm))
     left_items.append(Paragraph(app_name, st['clinic_name']))
     left_items.append(Paragraph(clinic_sub, st['clinic_sub']))
     if contact_line:
+        left_items.append(Spacer(1, 1 * mm))
         left_items.append(Paragraph(contact_line, st['clinic_contact']))
 
     left_t = Table([[item] for item in left_items], colWidths=[W * 0.60])
@@ -464,10 +465,10 @@ def _header_table(st, W, locale, settings, upload_folder, type_name, acc, doc_ti
     outer.setStyle(TableStyle([
         ('BACKGROUND',   (0, 0), (-1, -1), acc),
         ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 4 * mm),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 3 * mm),
-        ('TOPPADDING',   (0, 0), (-1, -1), 3 * mm),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 3 * mm),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 5 * mm),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5 * mm),
+        ('TOPPADDING',   (0, 0), (-1, -1), 5 * mm),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 5 * mm),
     ]))
     return outer
 
@@ -475,8 +476,8 @@ def _header_table(st, W, locale, settings, upload_folder, type_name, acc, doc_ti
 def _footer_rule(st, W, footer_text):
     """Thin grey rule + footer/date row above the teal footer bar."""
     story = []
-    story.append(Spacer(1, 5 * mm))
-    story.append(HRFlowable(width=W, thickness=0.4, color=BORDER,
+    story.append(Spacer(1, 6 * mm))
+    story.append(HRFlowable(width=W, thickness=0.5, color=BORDER,
                              spaceBefore=0, spaceAfter=2))
     today = date.today().strftime('%d/%m/%Y')
     ft = Table([[Paragraph(footer_text or '', st['footer_l']),
