@@ -51,6 +51,18 @@ def profile():
 
     form = ChangePasswordForm()
 
+    # Handle license number update
+    if flask_request.method == 'POST' and flask_request.form.get('action') == 'update_license':
+        from ..models import Role as _Role
+        if current_user.role in [_Role.DENTIST, _Role.CLINICAL_DIRECTOR, _Role.SUPERADMIN]:
+            ln = flask_request.form.get('license_number', '').strip()
+            current_user.license_number = ln or None
+            db.session.commit()
+            log_action('users', 'UPDATE', record_id=current_user.id,
+                       description='License number updated')
+            flash(_('Número de ordem actualizado com sucesso!'), 'success')
+        return redirect(url_for('auth.profile'))
+
     # Handle signature upload (any form submit with a signature file)
     sig_file = flask_request.files.get('signature_file')
     if sig_file and sig_file.filename:

@@ -99,6 +99,7 @@ class User(UserMixin, db.Model):
     signature_path = db.Column(db.String(500), nullable=True)
     phone = db.Column(db.String(30), nullable=True)
     specialty = db.Column(db.String(100), nullable=True)
+    license_number = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))

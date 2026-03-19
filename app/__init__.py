@@ -176,6 +176,19 @@ def _migrate_db_columns():
                 except Exception as e:
                     logger.warning('Migration skip %s: %s', col, e)
 
+        # users: license_number column
+        try:
+            u_existing = [c['name'] for c in inspector.get_columns('users')]
+        except Exception:
+            u_existing = []
+        if 'license_number' not in u_existing:
+            try:
+                conn.execute(text('ALTER TABLE users ADD COLUMN license_number VARCHAR(50)'))
+                conn.commit()
+                logger.info('Migration: added column users.license_number')
+            except Exception as e:
+                logger.warning('Migration skip users.license_number: %s', e)
+
         # clinical_sessions new columns
         try:
             cs_existing = [c['name'] for c in inspector.get_columns('clinical_sessions')]

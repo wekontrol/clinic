@@ -299,6 +299,7 @@ def new_user():
             role=form.role.data,
             phone=form.phone.data,
             specialty=form.specialty.data,
+            license_number=form.license_number.data or None,
             is_active=form.is_active.data,
             password_hash=generate_password_hash('changeme123', method='pbkdf2:sha256')
         )
@@ -335,6 +336,7 @@ def edit_user(id):
         user.role = form.role.data
         user.phone = form.phone.data
         user.specialty = form.specialty.data
+        user.license_number = form.license_number.data or None
         user.is_active = form.is_active.data
         db.session.commit()
         log_action('users', 'UPDATE', record_id=user.id,

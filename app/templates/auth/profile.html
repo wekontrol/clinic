@@ -34,6 +34,22 @@
           <span class="ms-auto" style="font-size:.85rem;color:var(--dc-white)">{{ current_user.phone }}</span>
         </div>
         {% endif %}
+        {% if current_user.role in ['dentist', 'clinical_director', 'superadmin'] %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-award-fill" style="color:var(--dc-primary)"></i>
+          <span style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Nº Ordem') }}</span>
+          <span class="ms-auto" style="font-size:.85rem;font-weight:600;color:var(--dc-white)">
+            {{ current_user.license_number or '—' }}
+          </span>
+        </div>
+        {% endif %}
+        {% if current_user.specialty %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-bookmark-fill" style="color:var(--dc-primary)"></i>
+          <span style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Especialidade') }}</span>
+          <span class="ms-auto" style="font-size:.85rem;color:var(--dc-white)">{{ current_user.specialty }}</span>
+        </div>
+        {% endif %}
         <div class="d-flex align-items-center gap-2">
           <i class="bi bi-calendar3" style="color:var(--dc-primary)"></i>
           <span style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Desde') }}</span>
@@ -43,6 +59,30 @@
         </div>
       </div>
     </div>
+
+    <!-- License number edit (dentist + clinical director + superadmin) -->
+    {% if current_user.role in ['dentist', 'clinical_director', 'superadmin'] %}
+    <div class="dc-card mt-3">
+      <div class="dc-section-title mb-3">
+        <i class="bi bi-award-fill me-2"></i>{{ _('Nº Ordem dos Médicos') }}
+      </div>
+      <form method="POST" action="{{ url_for('auth.profile') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="update_license">
+        <div class="mb-2">
+          <input type="text" class="form-control form-control-sm" name="license_number"
+                 value="{{ current_user.license_number or '' }}"
+                 placeholder="{{ _('ex: OM-12345') }}" maxlength="50">
+          <div class="mt-1" style="font-size:.72rem;color:var(--dc-muted)">
+            {{ _('Aparece nos PDFs clínicos abaixo do seu nome.') }}
+          </div>
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+          <i class="bi bi-check2-circle me-1"></i>{{ _('Guardar') }}
+        </button>
+      </form>
+    </div>
+    {% endif %}
 
     <!-- Digital signature (dentist + clinical director + superadmin) -->
     {% if current_user.role in ['dentist', 'clinical_director', 'superadmin'] %}

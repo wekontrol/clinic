@@ -48,5 +48,6 @@ class UserForm(FlaskForm):
     ], validators=[DataRequired()])
     phone = StringField(_l('Telefone'), validators=[Optional()])
     specialty = StringField(_l('Especialidade'), validators=[Optional()])
+    license_number = StringField(_l('Nº Ordem dos Médicos'), validators=[Optional(), Length(0, 50)])
     is_active = BooleanField(_l('Ativo'), default=True)
     submit = SubmitField(_l('Guardar'))

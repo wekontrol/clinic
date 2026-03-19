@@ -37,9 +37,14 @@
             <label class="form-label">{{ form.phone.label.text }}</label>
             {{ form.phone(class="form-control", placeholder="+244 900 000 000") }}
           </div>
-          <div class="col-12">
+          <div class="col-md-8">
             <label class="form-label">{{ form.specialty.label.text }}</label>
             {{ form.specialty(class="form-control", placeholder=_("ex: Ortodontia, Endodontia…")) }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.license_number.label.text }}</label>
+            {{ form.license_number(class="form-control", placeholder=_("ex: OM-12345")) }}
+            <div class="form-text" style="font-size:.72rem">{{ _('Apenas para Dentistas e Directores Clínicos') }}</div>
           </div>
           <div class="col-12">
             <div class="form-check form-switch">
