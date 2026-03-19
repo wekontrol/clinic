@@ -553,7 +553,8 @@ def pdf_template_edit(ptype):
                     and not key.endswith('_show_pagenum')):
                 AppSetting.set(key, val.strip())
 
-        for cb in (f'pdf_{ptype}_show_logo', f'pdf_{ptype}_show_pagenum'):
+        for cb in (f'pdf_{ptype}_show_logo', f'pdf_{ptype}_show_pagenum',
+                   f'pdf_{ptype}_show_sig_label'):
             AppSetting.set(cb, '1' if request.form.get(cb) else '0')
 
         flash(_('Configurações do PDF guardadas com sucesso.'), 'success')

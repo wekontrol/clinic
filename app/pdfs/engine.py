@@ -390,7 +390,7 @@ def _info_box(rows, st, col_widths):
     return t
 
 
-def _sig_block(sig_path, name, label, st, width=50 * mm, license_number=None):
+def _sig_block(sig_path, name, label, st, width=50 * mm, license_number=None, show_label=True):
     items = []
     if sig_path and os.path.isfile(sig_path):
         try:
@@ -404,7 +404,8 @@ def _sig_block(sig_path, name, label, st, width=50 * mm, license_number=None):
     items.append(Paragraph(name, st['sig_name']))
     if license_number:
         items.append(Paragraph(license_number, st['sig_label']))
-    items.append(Paragraph(label, st['sig_label']))
+    if show_label:
+        items.append(Paragraph(label, st['sig_label']))
     return items
 
 
@@ -626,9 +627,10 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
         sig_path = os.path.join(upload_folder, dentist.signature_path)
     sig_w = W * 0.55
     dentist_ln = getattr(dentist, 'license_number', None) if dentist else None
+    show_sig_lbl = settings.get(f'pdf_{TN}_show_sig_label', '1') != '0'
     sig_elems = _sig_block(sig_path, dentist.full_name if dentist else '—',
                             _s('sig', locale, settings, TN), st, sig_w,
-                            license_number=dentist_ln)
+                            license_number=dentist_ln, show_label=show_sig_lbl)
     sig_inner = Table([[e] for e in sig_elems], colWidths=[sig_w])
     sig_inner.setStyle(TableStyle([('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
                                     ('LEFTPADDING',  (0, 0), (-1, -1), 0),
@@ -722,11 +724,13 @@ def _story_consent_form(session, locale, settings, TN, st, acc, W, upload_folder
         return t
 
     dentist_ln = getattr(dentist, 'license_number', None) if dentist else None
+    show_sig_lbl = settings.get(f'pdf_{TN}_show_sig_label', '1') != '0'
     psig = _sig_block(None, patient.full_name if patient else '—',
-                      _s('patient_sig', locale, settings, TN), st, col_w)
+                      _s('patient_sig', locale, settings, TN), st, col_w,
+                      show_label=show_sig_lbl)
     dsig = _sig_block(sig_path, dentist.full_name if dentist else '—',
                       _s('dentist_sig', locale, settings, TN), st, col_w,
-                      license_number=dentist_ln)
+                      license_number=dentist_ln, show_label=show_sig_lbl)
 
     sig_tbl = Table([[_sig_col(psig, col_w), '', _sig_col(dsig, col_w)]],
                      colWidths=[W * 0.45, W * 0.10, W * 0.45])
@@ -875,9 +879,10 @@ def _story_prescription(session, locale, settings, TN, st, acc, W, upload_folder
         sig_path = os.path.join(upload_folder, dentist.signature_path)
     sig_w = W * 0.55
     dentist_ln = getattr(dentist, 'license_number', None) if dentist else None
+    show_sig_lbl = settings.get(f'pdf_{TN}_show_sig_label', '1') != '0'
     sig_elems = _sig_block(sig_path, dentist.full_name if dentist else '—',
                             _s('sig', locale, settings, TN), st, sig_w,
-                            license_number=dentist_ln)
+                            license_number=dentist_ln, show_label=show_sig_lbl)
     sig_inner = Table([[e] for e in sig_elems], colWidths=[sig_w])
     sig_inner.setStyle(TableStyle([('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
                                     ('LEFTPADDING',  (0, 0), (-1, -1), 0),

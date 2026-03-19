@@ -36,6 +36,14 @@ A comprehensive dental clinic management system built with Flask. Features patie
 - Auto-migrated on startup (idempotent column additions)
 - Auto-seeded with admin user and 2 rooms on first run
 
+## Recent Changes
+- **Medical Order Number (`license_number`)**: Added support for storing and displaying the medical order number for dentists/clinical directors
+  - Added database column with auto-migration
+  - Dentists can edit their own number in the profile page
+  - Admin can manage via user admin panel
+  - Number appears in PDFs below the dentist's name in signature blocks
+- **PDF Signature Label Toggle**: Added new setting "Mostrar rótulo de assinatura" in PDF template editor to control visibility of signature/stamp labels in all three PDF types
+
 ## Notes
 - SECRET_KEY env var should be set in production
 - Flask-Babel translations compiled automatically on startup

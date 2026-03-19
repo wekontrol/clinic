@@ -108,6 +108,17 @@
           </div>
         </div>
 
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            <input type="checkbox" class="form-check-input" role="switch"
+                   name="{{ kp }}show_sig_label" id="chk_sig_lbl"
+                   {% if settings.get(kp ~ 'show_sig_label', '1') != '0' %}checked{% endif %}>
+            <label class="form-check-label" for="chk_sig_lbl" style="font-size:.85rem">
+              {{ _('Mostrar rótulo de assinatura') }}
+            </label>
+          </div>
+        </div>
+
         <div class="mb-0">
           <label class="form-label" style="font-size:.82rem;color:var(--dc-text-muted)">
             {{ _('Marca de Água (opcional)') }}
