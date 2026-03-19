@@ -7,8 +7,8 @@ Sistema profissional de gestão clínica dentária desenvolvido em Python/Flask,
 ## ⚡ Instalação Rápida (Ubuntu Server 22.04 / 24.04)
 
 ```bash
-git clone https://github.com/SEU_UTILIZADOR/dental-clinic.git
-cd dental-clinic
+git clone https://github.com/SEU_UTILIZADOR/clinic.git
+cd clinic
 sudo bash install.sh
 ```
 
@@ -47,8 +47,8 @@ Acesso em `http://IP_DO_SERVIDOR` — login: **admin** / senha: **admin**
 
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/SEU_UTILIZADOR/dental-clinic.git /opt/dental-clinic
-cd /opt/dental-clinic
+git clone https://github.com/SEU_UTILIZADOR/clinic.git /opt/dental-clinic
+cd /opt/clinic
 
 # 2. Criar ambiente virtual e instalar dependências
 python3 -m venv venv
@@ -71,7 +71,7 @@ python run.py
 SECRET_KEY=chave-secreta-forte-aqui
 FLASK_ENV=production
 DATABASE_URL=sqlite:///dental.db
-UPLOAD_FOLDER=/opt/dental-clinic/uploads
+UPLOAD_FOLDER=/opt/clinic/uploads
 MAX_CONTENT_LENGTH=536870912
 ```
 
