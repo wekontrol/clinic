@@ -26,6 +26,7 @@
   </span>
 </div>
 
+{# ── SESSION SAVE FORM ────────────────────────────────────────────────────── #}
 <form method="POST" id="sessionForm">
   {{ form.hidden_tag() }}
 
@@ -38,7 +39,7 @@
   </div>
 
   <div class="row g-4">
-    <!-- Left: clinical notes + treatments + prescriptions -->
+    <!-- Left: clinical notes + treatments -->
     <div class="col-lg-8">
 
       <!-- Clinical notes card -->
@@ -113,233 +114,10 @@
         </div>
       </div>
 
-      <!-- Prescriptions -->
-      <div class="dc-card p-4 mb-4">
-        <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-prescription2 me-2" style="color:var(--dc-primary)"></i>{{ _('Prescrições') }}</h6>
-        {% if prescriptions %}
-        <div class="table-responsive mb-3">
-          <table class="table table-sm mb-0" style="color:var(--dc-text)">
-            <thead><tr style="color:var(--dc-text-muted);font-size:.75rem">
-              <th>{{ _('Medicamento') }}</th><th>{{ _('Dosagem') }}</th><th>{{ _('Freq.') }}</th><th>{{ _('Duração') }}</th><th></th>
-            </tr></thead>
-            <tbody>
-              {% for p in prescriptions %}
-              <tr>
-                <td>{{ p.medicine.name_pt if p.medicine else '—' }}</td>
-                <td>{{ p.dosage or '—' }}</td>
-                <td>{{ p.frequency or '—' }}</td>
-                <td>{{ p.duration or '—' }}</td>
-                <td>
-                  <form method="POST" action="{{ url_for('sessions.delete_prescription', session_id=sess.id, presc_id=p.id) }}" style="display:inline">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('{{ _('Remover prescrição?') }}')">
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-        <p class="small mb-3" style="color:var(--dc-text-muted)">{{ _('Sem prescrições nesta sessão.') }}</p>
-        {% endif %}
-
-        <!-- Add prescription form -->
-        <div class="border-top pt-3" style="border-color:var(--dc-border)!important">
-          <p class="small mb-2" style="color:var(--dc-text-muted)"><i class="bi bi-plus-circle me-1"></i>{{ _('Adicionar Prescrição') }}</p>
-          <form method="POST" action="{{ url_for('sessions.add_prescription', session_id=sess.id) }}" class="row g-2">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="col-md-5">
-              <select name="medicine_id" class="form-select form-select-sm" required>
-                <option value="0">{{ _('Medicamento...') }}</option>
-                {% for m in all_medicines %}
-                <option value="{{ m.id }}">{{ m.name_pt }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="dosage" class="form-control form-control-sm" placeholder="{{ _('Dosagem') }}">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="frequency" class="form-control form-control-sm" placeholder="{{ _('Frequência') }}">
-            </div>
-            <div class="col-md-2">
-              <input type="text" name="duration" class="form-control form-control-sm" placeholder="{{ _('Duração') }}">
-            </div>
-            <div class="col-md-1">
-              <button class="btn btn-sm btn-outline-primary w-100" type="submit"><i class="bi bi-plus"></i></button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Consumíveis -->
-      <div class="dc-card p-4 mb-4">
-        <h6 class="mb-3" style="color:var(--dc-text)">
-          <i class="bi bi-box-seam-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Consumíveis Utilizados') }}
-          <span class="ms-2" style="font-size:.72rem;font-weight:400;color:var(--dc-text-muted)">{{ _('Custo interno — não facturado ao paciente') }}</span>
-        </h6>
-        {% if consumables %}
-        <div class="table-responsive mb-3">
-          <table class="table table-sm mb-0" style="color:var(--dc-text)">
-            <thead><tr style="color:var(--dc-text-muted);font-size:.75rem;border-bottom:1px solid var(--dc-border)">
-              <th>{{ _('Produto') }}</th><th class="text-center">{{ _('Qtd.') }}</th>
-              <th class="text-end">{{ _('Custo Unit.') }}</th><th class="text-end">{{ _('Total') }}</th><th></th>
-            </tr></thead>
-            <tbody>
-              {% for sc in consumables %}
-              <tr style="border-bottom:1px solid var(--dc-border)">
-                <td style="font-size:.83rem">
-                  <i class="bi bi-{{ sc.product.category_icon if sc.product else 'box-seam' }} me-1" style="color:var(--dc-primary)"></i>
-                  {{ sc.product.name_pt if sc.product else '—' }}
-                </td>
-                <td class="text-center" style="font-size:.83rem">{{ sc.quantity|int }} {{ sc.product.unit if sc.product else '' }}</td>
-                <td class="text-end" style="font-size:.78rem;color:var(--dc-text-muted)">
-                  {% if sc.unit_cost_snapshot %}{{ '%.2f'|format(sc.unit_cost_snapshot|float) }} Kz{% else %}—{% endif %}
-                </td>
-                <td class="text-end" style="font-size:.83rem;font-weight:600;color:var(--dc-text)">
-                  {% if sc.total_cost %}{{ '%.2f'|format(sc.total_cost) }} Kz{% else %}—{% endif %}
-                </td>
-                <td>
-                  <form method="POST" action="{{ url_for('sessions.delete_consumable', session_id=sess.id, sc_id=sc.id) }}" style="display:inline">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('{{ _('Remover consumível? O stock será reposto.') }}')">
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            {% if consumables %}
-            <tfoot>
-              <tr style="border-top:2px solid var(--dc-border)">
-                <td colspan="3" class="text-end" style="font-size:.78rem;color:var(--dc-text-muted)">{{ _('Custo Total Consumíveis') }}</td>
-                <td class="text-end fw-700" style="font-size:.88rem;color:var(--dc-primary)">
-                  {{ '%.2f'|format(consumables | sum(attribute='total_cost') | float) }} Kz
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-            {% endif %}
-          </table>
-        </div>
-        {% else %}
-        <p class="small mb-3" style="color:var(--dc-text-muted)">{{ _('Nenhum consumível registado nesta sessão.') }}</p>
-        {% endif %}
-
-        <!-- Add consumable form -->
-        {% if stock_products %}
-        <div class="border-top pt-3" style="border-color:var(--dc-border)!important">
-          <p class="small mb-2" style="color:var(--dc-text-muted)"><i class="bi bi-plus-circle me-1"></i>{{ _('Registar Consumível') }}</p>
-          <form method="POST" action="{{ url_for('sessions.add_consumable', session_id=sess.id) }}" class="row g-2 align-items-end">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="col-md-6">
-              <select name="product_id" class="form-select form-select-sm" required>
-                <option value="">{{ _('Selecionar produto…') }}</option>
-                {% set current_cat = '' %}
-                {% for p in stock_products %}
-                  {% if p.category != current_cat %}
-                    {% if current_cat != '' %}</optgroup>{% endif %}
-                    <optgroup label="{{ p.category_label }}">
-                    {% set current_cat = p.category %}
-                  {% endif %}
-                  <option value="{{ p.id }}"
-                    {% if p.qty_current|float == 0 %}disabled{% endif %}>
-                    {{ p.name_pt }} — {{ p.qty_current|int }} {{ p.unit }}
-                    {% if p.is_low_stock and p.qty_current|float > 0 %} ⚠{% endif %}
-                  </option>
-                {% endfor %}
-                {% if current_cat != '' %}</optgroup>{% endif %}
-              </select>
-            </div>
-            <div class="col-md-2">
-              <input type="number" name="quantity" class="form-control form-control-sm" placeholder="{{ _('Qtd.') }}" min="0.01" step="0.01" required>
-            </div>
-            <div class="col-md-3">
-              <input type="text" name="notes" class="form-control form-control-sm" placeholder="{{ _('Nota (opc.)') }}">
-            </div>
-            <div class="col-md-1">
-              <button class="btn btn-sm btn-outline-primary w-100" type="submit"><i class="bi bi-plus"></i></button>
-            </div>
-          </form>
-        </div>
-        {% else %}
-        <div class="border-top pt-3" style="border-color:var(--dc-border)!important">
-          <p class="small mb-0" style="color:var(--dc-text-muted)">
-            <i class="bi bi-info-circle me-1"></i>
-            <a href="{{ url_for('stock.new_product') }}" style="color:var(--dc-primary)">{{ _('Adicionar produtos ao stock') }}</a>
-            {{ _('para poder registar consumíveis.') }}
-          </p>
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- X-Rays -->
-      <div class="dc-card p-4 mb-4">
-        <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-image-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Radiografias') }}</h6>
-        {% if xrays %}
-        <div class="row g-2 mb-3">
-          {% for xr in xrays %}
-          <div class="col-6 col-md-3">
-            <div class="dc-card p-2 text-center" style="position:relative">
-              {% if xr.file_type == 'pdf' %}
-                <a href="{{ url_for('main.serve_upload', filename=xr.file_path) }}" target="_blank" style="color:var(--dc-text);text-decoration:none">
-                  <i class="bi bi-file-pdf-fill fs-2 text-danger"></i>
-                  <div class="small text-truncate mt-1">{{ xr.file_name }}</div>
-                </a>
-              {% else %}
-                <a href="{{ url_for('main.serve_upload', filename=xr.file_path) }}" target="_blank" data-bs-toggle="tooltip" title="{{ xr.file_name }}">
-                  <img src="{{ url_for('main.serve_upload', filename=xr.file_path) }}" alt="{{ xr.file_name }}"
-                       style="width:100%;height:70px;object-fit:cover;border-radius:4px">
-                </a>
-              {% endif %}
-              {% if xr.notes %}<div class="small mt-1" style="color:var(--dc-text-muted);font-size:.7rem">{{ xr.notes }}</div>{% endif %}
-              <form method="POST" action="{{ url_for('sessions.delete_xray', session_id=sess.id, xray_id=xr.id) }}" style="position:absolute;top:4px;right:4px">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-danger btn-sm py-0 px-1" style="font-size:.65rem" onclick="return confirm('{{ _('Remover radiografia?') }}')">
-                  <i class="bi bi-trash3"></i>
-                </button>
-              </form>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Upload X-Ray (múltiplos ficheiros) -->
-        <form method="POST" action="{{ url_for('sessions.upload_xray', session_id=sess.id) }}"
-              enctype="multipart/form-data">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="mb-2">
-            <label class="form-label form-label-sm mb-1">
-              {{ _('Carregar Radiografias') }}
-              <span class="badge bg-secondary ms-1" style="font-size:.65rem">JPG · PNG · PDF</span>
-              <span class="badge bg-secondary" style="font-size:.65rem">
-                {{ _('máx.') }} {{ app_settings.xray_max_mb }} MB {{ _('por ficheiro') }}
-              </span>
-            </label>
-            <input type="file" name="files" class="form-control form-control-sm"
-                   accept=".jpg,.jpeg,.png,.pdf" multiple>
-            <div class="form-text">{{ _('Pode seleccionar vários ficheiros de uma vez.') }}</div>
-          </div>
-          <div class="d-flex gap-2 align-items-center flex-wrap">
-            <input type="text" name="notes" class="form-control form-control-sm"
-                   style="max-width:260px" placeholder="{{ _('Notas para todos os ficheiros (opcional)') }}">
-            <button class="btn btn-outline-primary btn-sm" type="submit">
-              <i class="bi bi-upload me-1"></i>{{ _('Carregar') }}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
 
-    <!-- Right col: status + actions -->
+    <!-- Right col: status + save button -->
     <div class="col-lg-4">
-
-      <!-- Status -->
       <div class="dc-card p-3 mb-3">
         <h6 class="mb-2" style="color:var(--dc-text)"><i class="bi bi-toggle-on me-2" style="color:var(--dc-primary)"></i>{{ _('Estado') }}</h6>
         {{ form.status(class='form-select form-select-sm') }}
@@ -359,6 +137,253 @@
     </div>
   </div>
 </form>
+{# ── END SESSION SAVE FORM ───────────────────────────────────────────────── #}
+
+{# ── STANDALONE FORMS (prescriptions, consumables, x-rays) ─────────────── #}
+<div class="row g-4 mt-0">
+  <div class="col-lg-8">
+
+    {# ── PRESCRIPTIONS ─────────────────────────────────────────────────── #}
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-prescription2 me-2" style="color:var(--dc-primary)"></i>{{ _('Prescrições') }}</h6>
+      {% if prescriptions %}
+      <div class="table-responsive mb-3">
+        <table class="table table-sm mb-0" style="color:var(--dc-text)">
+          <thead><tr style="color:var(--dc-text-muted);font-size:.75rem">
+            <th>{{ _('Medicamento') }}</th><th>{{ _('Dosagem') }}</th><th>{{ _('Freq.') }}</th><th>{{ _('Duração') }}</th><th>{{ _('Instruções') }}</th><th></th>
+          </tr></thead>
+          <tbody>
+            {% for p in prescriptions %}
+            <tr>
+              <td><strong>{{ p.medicine.name_pt if p.medicine else '—' }}</strong></td>
+              <td>{{ p.dosage or '—' }}</td>
+              <td>{{ p.frequency or '—' }}</td>
+              <td>{{ p.duration or '—' }}</td>
+              <td style="font-size:.8rem">{{ p.instructions or '' }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('sessions.delete_prescription', session_id=sess.id, presc_id=p.id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('{{ _('Remover prescrição?') }}')">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="small mb-3" style="color:var(--dc-text-muted)">{{ _('Sem prescrições nesta sessão.') }}</p>
+      {% endif %}
+
+      <!-- Add prescription form (standalone — not nested) -->
+      <div class="border-top pt-3" style="border-color:var(--dc-border)!important">
+        <p class="small mb-2" style="color:var(--dc-text-muted)"><i class="bi bi-plus-circle me-1"></i>{{ _('Adicionar Prescrição') }}</p>
+        <form method="POST" action="{{ url_for('sessions.add_prescription', session_id=sess.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+              <label class="form-label form-label-sm mb-1">{{ _('Medicamento') }}</label>
+              <select name="medicine_id" class="form-select form-select-sm" required>
+                <option value="0">{{ _('Selecionar...') }}</option>
+                {% for m in all_medicines %}
+                <option value="{{ m.id }}">{{ m.name_pt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label form-label-sm mb-1">{{ _('Dosagem') }}</label>
+              <input type="text" name="dosage" class="form-control form-control-sm" placeholder="{{ _('ex: 500mg') }}">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label form-label-sm mb-1">{{ _('Frequência') }}</label>
+              <input type="text" name="frequency" class="form-control form-control-sm" placeholder="{{ _('ex: 8/8h') }}">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label form-label-sm mb-1">{{ _('Duração') }}</label>
+              <input type="text" name="duration" class="form-control form-control-sm" placeholder="{{ _('ex: 5 dias') }}">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label form-label-sm mb-1">{{ _('Instruções') }}</label>
+              <input type="text" name="instructions" class="form-control form-control-sm" placeholder="{{ _('(opcional)') }}">
+            </div>
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-sm btn-primary" type="submit">
+              <i class="bi bi-plus-circle-fill me-1"></i>{{ _('Adicionar Prescrição') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# ── CONSUMÍVEIS ───────────────────────────────────────────────────── #}
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)">
+        <i class="bi bi-box-seam-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Consumíveis Utilizados') }}
+        <span class="ms-2" style="font-size:.72rem;font-weight:400;color:var(--dc-text-muted)">{{ _('Custo interno — não facturado ao paciente') }}</span>
+      </h6>
+      {% if consumables %}
+      <div class="table-responsive mb-3">
+        <table class="table table-sm mb-0" style="color:var(--dc-text)">
+          <thead><tr style="color:var(--dc-text-muted);font-size:.75rem;border-bottom:1px solid var(--dc-border)">
+            <th>{{ _('Produto') }}</th><th class="text-center">{{ _('Qtd.') }}</th>
+            <th class="text-end">{{ _('Custo Unit.') }}</th><th class="text-end">{{ _('Total') }}</th><th></th>
+          </tr></thead>
+          <tbody>
+            {% for sc in consumables %}
+            <tr style="border-bottom:1px solid var(--dc-border)">
+              <td style="font-size:.83rem">
+                <i class="bi bi-{{ sc.product.category_icon if sc.product else 'box-seam' }} me-1" style="color:var(--dc-primary)"></i>
+                {{ sc.product.name_pt if sc.product else '—' }}
+              </td>
+              <td class="text-center" style="font-size:.83rem">{{ sc.quantity|int }} {{ sc.product.unit if sc.product else '' }}</td>
+              <td class="text-end" style="font-size:.78rem;color:var(--dc-text-muted)">
+                {% if sc.unit_cost_snapshot %}{{ '%.2f'|format(sc.unit_cost_snapshot|float) }} Kz{% else %}—{% endif %}
+              </td>
+              <td class="text-end" style="font-size:.83rem;font-weight:600;color:var(--dc-text)">
+                {% if sc.total_cost %}{{ '%.2f'|format(sc.total_cost) }} Kz{% else %}—{% endif %}
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('sessions.delete_consumable', session_id=sess.id, sc_id=sc.id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('{{ _('Remover consumível? O stock será reposto.') }}')">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if consumables %}
+          <tfoot>
+            <tr style="border-top:2px solid var(--dc-border)">
+              <td colspan="3" class="text-end" style="font-size:.78rem;color:var(--dc-text-muted)">{{ _('Custo Total Consumíveis') }}</td>
+              <td class="text-end fw-700" style="font-size:.88rem;color:var(--dc-primary)">
+                {{ '%.2f'|format(consumables | sum(attribute='total_cost') | float) }} Kz
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+      {% else %}
+      <p class="small mb-3" style="color:var(--dc-text-muted)">{{ _('Nenhum consumível registado nesta sessão.') }}</p>
+      {% endif %}
+
+      <!-- Add consumable form (standalone — not nested) -->
+      {% if stock_products %}
+      <div class="border-top pt-3" style="border-color:var(--dc-border)!important">
+        <p class="small mb-2" style="color:var(--dc-text-muted)"><i class="bi bi-plus-circle me-1"></i>{{ _('Registar Consumível') }}</p>
+        <form method="POST" action="{{ url_for('sessions.add_consumable', session_id=sess.id) }}" class="row g-2 align-items-end">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="col-md-6">
+            <select name="product_id" class="form-select form-select-sm" required>
+              <option value="">{{ _('Selecionar produto…') }}</option>
+              {% set current_cat = '' %}
+              {% for p in stock_products %}
+                {% if p.category != current_cat %}
+                  {% if current_cat != '' %}</optgroup>{% endif %}
+                  <optgroup label="{{ p.category_label }}">
+                  {% set current_cat = p.category %}
+                {% endif %}
+                <option value="{{ p.id }}"
+                  {% if p.qty_current|float == 0 %}disabled{% endif %}>
+                  {{ p.name_pt }} — {{ p.qty_current|int }} {{ p.unit }}
+                  {% if p.is_low_stock and p.qty_current|float > 0 %} ⚠{% endif %}
+                </option>
+              {% endfor %}
+              {% if current_cat != '' %}</optgroup>{% endif %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input type="number" name="quantity" class="form-control form-control-sm" placeholder="{{ _('Qtd.') }}" min="0.01" step="0.01" required>
+          </div>
+          <div class="col-md-3">
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="{{ _('Nota (opc.)') }}">
+          </div>
+          <div class="col-md-1">
+            <button class="btn btn-sm btn-outline-primary w-100" type="submit"><i class="bi bi-plus"></i></button>
+          </div>
+        </form>
+      </div>
+      {% else %}
+      <div class="border-top pt-3" style="border-color:var(--dc-border)!important">
+        <p class="small mb-0" style="color:var(--dc-text-muted)">
+          <i class="bi bi-info-circle me-1"></i>
+          <a href="{{ url_for('stock.new_product') }}" style="color:var(--dc-primary)">{{ _('Adicionar produtos ao stock') }}</a>
+          {{ _('para poder registar consumíveis.') }}
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── RADIOGRAFIAS ──────────────────────────────────────────────────── #}
+    <div class="dc-card p-4 mb-4">
+      <h6 class="mb-3" style="color:var(--dc-text)"><i class="bi bi-image-fill me-2" style="color:var(--dc-primary)"></i>{{ _('Radiografias') }}</h6>
+      {% if xrays %}
+      <div class="row g-2 mb-3">
+        {% for xr in xrays %}
+        <div class="col-6 col-md-3">
+          <div class="dc-card p-2 text-center" style="position:relative">
+            {% if xr.file_type == 'pdf' %}
+              <a href="{{ url_for('main.serve_upload', filename=xr.file_path) }}" target="_blank" style="color:var(--dc-text);text-decoration:none">
+                <i class="bi bi-file-pdf-fill fs-2 text-danger"></i>
+                <div class="small text-truncate mt-1">{{ xr.file_name }}</div>
+              </a>
+            {% else %}
+              <a href="{{ url_for('main.serve_upload', filename=xr.file_path) }}" target="_blank" data-bs-toggle="tooltip" title="{{ xr.file_name }}">
+                <img src="{{ url_for('main.serve_upload', filename=xr.file_path) }}" alt="{{ xr.file_name }}"
+                     style="width:100%;height:70px;object-fit:cover;border-radius:4px">
+              </a>
+            {% endif %}
+            {% if xr.notes %}<div class="small mt-1" style="color:var(--dc-text-muted);font-size:.7rem">{{ xr.notes }}</div>{% endif %}
+            <form method="POST" action="{{ url_for('sessions.delete_xray', session_id=sess.id, xray_id=xr.id) }}" style="position:absolute;top:4px;right:4px">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-danger btn-sm py-0 px-1" style="font-size:.65rem" onclick="return confirm('{{ _('Remover radiografia?') }}')">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Upload X-Ray (standalone — not nested) -->
+      <form method="POST" action="{{ url_for('sessions.upload_xray', session_id=sess.id) }}"
+            enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-2">
+          <label class="form-label form-label-sm mb-1">
+            {{ _('Carregar Radiografias') }}
+            <span class="badge bg-secondary ms-1" style="font-size:.65rem">JPG · PNG · PDF</span>
+            <span class="badge bg-secondary" style="font-size:.65rem">
+              {{ _('máx.') }} {{ app_settings.xray_max_mb }} MB {{ _('por ficheiro') }}
+            </span>
+          </label>
+          <input type="file" name="files" class="form-control form-control-sm"
+                 accept=".jpg,.jpeg,.png,.pdf" multiple>
+          <div class="form-text">{{ _('Pode seleccionar vários ficheiros de uma vez.') }}</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <input type="text" name="notes" class="form-control form-control-sm"
+                 style="max-width:260px" placeholder="{{ _('Notas para todos os ficheiros (opcional)') }}">
+          <button class="btn btn-outline-primary btn-sm" type="submit">
+            <i class="bi bi-upload me-1"></i>{{ _('Carregar') }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+  <div class="col-lg-4">
+    <!-- spacer column to keep layout consistent -->
+  </div>
+</div>
+{# ── END STANDALONE FORMS ────────────────────────────────────────────────── #}
 
 {% include 'sessions/_odontogram_js.html' %}
 {% endblock %}
