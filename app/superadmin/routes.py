@@ -81,6 +81,11 @@ def system_settings():
         if request.form.get('remove_logo'):
             AppSetting.set('app_logo', '')
 
+        for key in ('app_clinic_name', 'app_subtitle', 'app_nif',
+                    'app_phone', 'app_email', 'app_address'):
+            val = request.form.get(key, '').strip()
+            AppSetting.set(key, val)
+
         flash(_('Configurações guardadas com sucesso.'), 'success')
         return redirect(url_for('superadmin.system_settings'))
 

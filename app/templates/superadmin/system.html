@@ -178,7 +178,7 @@
   <div class="sys-section">
     <div class="sys-section-title"><i class="bi bi-building-fill-gear"></i>{{ _('Identidade da Clínica') }}</div>
 
-    <div class="row g-3 align-items-start">
+    <div class="row g-3 align-items-start mb-3">
       <div class="col-md-5">
         <label class="form-label" style="font-size:.85rem;color:var(--dc-text-muted)">{{ _('Nome da Aplicação') }}</label>
         <input type="text" name="app_name" class="form-control"
@@ -214,6 +214,70 @@
             {% endif %}
           </div>
         </div>
+      </div>
+    </div>
+
+    <hr style="border-color:var(--dc-border);margin:0 0 1.2rem">
+    <p style="font-size:.78rem;color:var(--dc-text-muted);margin-bottom:1rem">
+      <i class="bi bi-info-circle me-1"></i>
+      {{ _('Estes dados são usados automaticamente nos PDFs (cabeçalho e rodapé). Nos templates de PDF individuais pode substituí-los por valores específicos.') }}
+    </p>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-600" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-hospital me-1"></i>{{ _('Nome da Clínica') }}
+        </label>
+        <input type="text" name="app_clinic_name" class="form-control form-control-sm"
+               value="{{ settings.get('app_clinic_name', '') }}"
+               placeholder="{{ settings.app_name or 'Clínica Dentária Exemplo' }}">
+        <div class="form-text">{{ _('Nome que aparece no cabeçalho dos PDFs. Se vazio, usa o Nome da Aplicação.') }}</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-600" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-card-text me-1"></i>{{ _('Subtítulo / Especialidade') }}
+        </label>
+        <input type="text" name="app_subtitle" class="form-control form-control-sm"
+               value="{{ settings.get('app_subtitle', '') }}"
+               placeholder="{{ _('Clínica Odontológica') }}">
+        <div class="form-text">{{ _('Ex: Clínica Odontológica · Medicina Dentária') }}</div>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-600" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-receipt me-1"></i>{{ _('NIF / NIPC') }}
+        </label>
+        <input type="text" name="app_nif" class="form-control form-control-sm"
+               value="{{ settings.get('app_nif', '') }}"
+               placeholder="000 000 000">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-600" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-telephone me-1"></i>{{ _('Número de Telefone') }}
+        </label>
+        <input type="text" name="app_phone" class="form-control form-control-sm"
+               value="{{ settings.get('app_phone', '') }}"
+               placeholder="+244 9xx xxx xxx">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-600" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-envelope me-1"></i>{{ _('E-mail da Clínica') }}
+        </label>
+        <input type="text" name="app_email" class="form-control form-control-sm"
+               value="{{ settings.get('app_email', '') }}"
+               placeholder="clinica@exemplo.ao">
+      </div>
+
+      <div class="col-md-12">
+        <label class="form-label fw-600" style="font-size:.85rem;color:var(--dc-text-muted)">
+          <i class="bi bi-geo-alt me-1"></i>{{ _('Localização / Morada') }}
+        </label>
+        <input type="text" name="app_address" class="form-control form-control-sm"
+               value="{{ settings.get('app_address', '') }}"
+               placeholder="{{ _('Rua Exemplo, nº 123, Luanda') }}">
       </div>
     </div>
   </div>

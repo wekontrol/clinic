@@ -414,11 +414,15 @@ def _header_table(st, W, locale, settings, upload_folder, type_name, acc, doc_ti
     def _gs(f):
         return settings.get(f'pdf_{type_name}_clinic_{f}', '') or ''
 
-    app_name   = _gs('name') or settings.get('app_name', 'DentClinic')
+    app_name   = _gs('name') or settings.get('app_clinic_name', '') or settings.get('app_name', 'DentClinic')
     sub_defs   = {'pt': 'Clínica Odontológica', 'en': 'Dental Clinic', 'es': 'Clínica Odontológica'}
-    clinic_sub = _gs('subtitle') or sub_defs.get(locale, 'Clínica Odontológica')
-    contact_parts = [p for p in [_gs('address'), _gs('phone'), _gs('email'),
-                                   (f"NIF: {_gs('nif')}" if _gs('nif') else '')] if p]
+    clinic_sub = _gs('subtitle') or settings.get('app_subtitle', '') or sub_defs.get(locale, 'Clínica Odontológica')
+    _addr  = _gs('address') or settings.get('app_address', '')
+    _phone = _gs('phone')   or settings.get('app_phone', '')
+    _email = _gs('email')   or settings.get('app_email', '')
+    _nif   = _gs('nif')     or settings.get('app_nif', '')
+    contact_parts = [p for p in [_addr, _phone, _email,
+                                   (f"NIF: {_nif}" if _nif else '')] if p]
     contact_line = '  ·  '.join(contact_parts)
 
     logo_img = None
