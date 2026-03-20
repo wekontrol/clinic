@@ -436,7 +436,7 @@ def _header_table(st, W, locale, settings, upload_folder, type_name, acc, doc_ti
                     logo_img = None  # SVG not supported by ReportLab/PIL
                 else:
                     try:
-                        logo_img = Image(logo_path, width=16 * mm, height=10 * mm)
+                        logo_img = Image(logo_path, width=45 * mm, height=28 * mm)
                         logo_img.hAlign = 'LEFT'
                     except Exception:
                         logo_img = None
