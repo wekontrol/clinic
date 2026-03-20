@@ -591,11 +591,11 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
         story.append(_section_hdr(_s('procedures', locale, settings, TN), st, W, acc))
         story.append(Spacer(1, 1.5 * mm))
 
-        cw  = [W * 0.58, W * 0.08, W * 0.20, W * 0.14]  # Wider procedure col
+        # 3-column table: Procedure | Qty | Price (no wasted 4th col)
+        cw  = [W * 0.60, W * 0.12, W * 0.28]
         hdr = [Paragraph(_s('procedure', locale, settings, TN), st['tbl_hdr']),
                Paragraph(_s('qty',       locale, settings, TN), st['tbl_hdr']),
-               Paragraph(_s('price',     locale, settings, TN), st['tbl_hdr']),
-               Paragraph('',                                    st['tbl_hdr'])]
+               Paragraph(_s('price',     locale, settings, TN), st['tbl_hdr'])]
         data  = [hdr]
         total = 0.0
         for tmt in treatments:
@@ -604,14 +604,13 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
                           (tmt.treatment.price if tmt.treatment else 0) or 0)
             qty   = tmt.quantity or 1
             total += price * qty
-            data.append([Paragraph(name,          st['tbl_body']),
-                         Paragraph(str(qty),       st['tbl_body_c']),
-                         Paragraph(f'{price:,.2f}',st['tbl_body_r']),
-                         Paragraph('',             st['tbl_body'])])
+            data.append([Paragraph(name,           st['tbl_body']),
+                         Paragraph(str(qty),        st['tbl_body_c']),
+                         Paragraph(f'{price:,.2f}', st['tbl_body_r'])])
+        # Total row: label spans col 0-1, value in col 2
         tl = _s('total_label', locale, settings, TN)
-        data.append([Paragraph('', st['tbl_hdr']),
-                     Paragraph('', st['tbl_hdr']),
-                     Paragraph(tl, st['total']),
+        data.append([Paragraph(tl, st['total']),
+                     Paragraph('',  st['total']),
                      Paragraph(f'{total:,.2f} Kz', st['total_val'])])
         cmds = [
             ('BACKGROUND',    (0, 0), (-1, 0),   HDR_BG),
@@ -619,12 +618,12 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
             ('BOX',           (0, 0), (-1, -2),  0.5, TEAL_DARK),
             ('GRID',          (0, 1), (-1, -2),  0.4, BORDER),
             ('BACKGROUND',    (0, -1),(-1, -1),  TEAL_LIGHT),
-            ('LINEABOVE',     (0, -1),(-1, -1),  1, TEAL_DARK),
-            ('SPAN',          (2, -1),(3, -1)),
-            ('TOPPADDING',    (0, 0), (-1, -1),  5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1),  5),
-            ('LEFTPADDING',   (0, 0), (-1, -1),  6),
-            ('RIGHTPADDING',  (0, 0), (-1, -1),  6),
+            ('LINEABOVE',     (0, -1),(-1, -1),  1.2, TEAL_DARK),
+            ('SPAN',          (0, -1),(1, -1)),   # merge col 0+1 for "Total:" label
+            ('TOPPADDING',    (0, 0), (-1, -1),  6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1),  6),
+            ('LEFTPADDING',   (0, 0), (-1, -1),  7),
+            ('RIGHTPADDING',  (0, 0), (-1, -1),  7),
             ('VALIGN',        (0, 0), (-1, -1),  'MIDDLE'),
         ]
         for i in range(1, len(data) - 1):
