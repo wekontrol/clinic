@@ -353,10 +353,10 @@ def _section_hdr(text, st, W, accent):
     label = Table([[Paragraph(text.upper(), st['section'])]], colWidths=[W - 5 * mm])
     label.setStyle(TableStyle([
         ('BACKGROUND',   (0, 0), (-1, -1), accent),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING',   (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 6),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING',   (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
     ]))
     wrapper = Table([[strip, label]], colWidths=[5 * mm, W - 5 * mm])
     wrapper.setStyle(TableStyle([
@@ -375,10 +375,10 @@ def _info_box(rows, st, col_widths):
              Paragraph(str(val or '—'), st['label_val'])] for lbl, val in rows]
     cmds = [
         ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING',   (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 6),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING',   (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 3),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
         ('LINEBELOW',    (0, 0), (-1, -1), 0.6, BORDER),
         ('BOX',          (0, 0), (-1, -1), 0.8, TEAL_DARK),
     ]
@@ -616,10 +616,10 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
             ('BACKGROUND',    (0, -1),(-1, -1),  TEAL_LIGHT),
             ('LINEABOVE',     (0, -1),(-1, -1),  1, TEAL_DARK),
             ('SPAN',          (2, -1),(3, -1)),
-            ('TOPPADDING',    (0, 0), (-1, -1),  5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1),  5),
-            ('LEFTPADDING',   (0, 0), (-1, -1),  6),
-            ('RIGHTPADDING',  (0, 0), (-1, -1),  6),
+            ('TOPPADDING',    (0, 0), (-1, -1),  3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1),  3),
+            ('LEFTPADDING',   (0, 0), (-1, -1),  4),
+            ('RIGHTPADDING',  (0, 0), (-1, -1),  4),
             ('VALIGN',        (0, 0), (-1, -1),  'MIDDLE'),
         ]
         for i in range(1, len(data) - 1):
@@ -852,10 +852,10 @@ def _story_prescription(session, locale, settings, TN, st, acc, W, upload_folder
             ('LINEBELOW',     (0, 0), (-1, 0),  1.5, TEAL_DARK),
             ('BOX',           (0, 0), (-1, -1), 0.5, TEAL_DARK),
             ('GRID',          (0, 1), (-1, -1), 0.4, BORDER),
-            ('TOPPADDING',    (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+            ('TOPPADDING',    (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ]
         for i in range(1, len(data)):
