@@ -32,7 +32,8 @@ def _allowed_image(filename):
 @superadmin_required
 def index():
     smb_cfg = _load_smb_config()
-    return render_template('superadmin/index.html', smb_cfg=smb_cfg)
+    git_config = _load_git_config()
+    return render_template('superadmin/index.html', smb_cfg=smb_cfg, git_config=git_config)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -148,6 +149,26 @@ def _human_bytes(n):
 # GitHub Sync (git pull)
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _load_git_config():
+    try:
+        config = AppSetting.query.filter_by(key='git_repo_url').first()
+        return {'url': config.value} if config else {}
+    except Exception:
+        return {}
+
+@superadmin_bp.route('/git-config-save', methods=['POST'])
+@login_required
+@superadmin_required
+def git_config_save():
+    github_url = request.form.get('github_url', '').strip()
+    if github_url:
+        AppSetting.set('git_repo_url', github_url)
+        flash(_('URL do repositório salvo com sucesso.'), 'success')
+    else:
+        AppSetting.set('git_repo_url', '')
+        flash(_('URL removido.'), 'info')
+    return redirect(url_for('superadmin.index'))
+
 @superadmin_bp.route('/git-pull', methods=['GET', 'POST'])
 @login_required
 @superadmin_required
@@ -158,6 +179,21 @@ def git_pull():
 
     def _generate():
         try:
+            git_cfg = _load_git_config()
+            repo_url = git_cfg.get('url', '')
+            
+            if repo_url:
+                yield f"data: [INFO] Configurando remoto para: {repo_url}\n\n"
+                set_remote = subprocess.run(
+                    ['git', 'remote', 'set-url', 'origin', repo_url],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if set_remote.returncode != 0:
+                    yield f"data: [WARN] Erro ao configurar remoto: {set_remote.stderr}\n\n"
+            
             proc = subprocess.Popen(
                 ['git', 'pull'],
                 cwd=repo_root,
