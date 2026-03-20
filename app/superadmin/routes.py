@@ -17,7 +17,7 @@ from ..models import Role, AppSetting, RoleDefinition, User
 from ..extensions import db
 
 LOGO_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'logos')
-ALLOWED_IMAGE_EXTS = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'}
+ALLOWED_IMAGE_EXTS = {'png', 'jpg', 'jpeg', 'webp'}
 
 def _allowed_image(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTS
@@ -73,11 +73,14 @@ def system_settings():
             AppSetting.set('urgency_surcharge', urgency)
 
         logo = request.files.get('app_logo')
-        if logo and logo.filename and _allowed_image(logo.filename):
-            os.makedirs(LOGO_FOLDER, exist_ok=True)
-            filename = secure_filename(logo.filename)
-            logo.save(os.path.join(LOGO_FOLDER, filename))
-            AppSetting.set('app_logo', filename)
+        if logo and logo.filename:
+            if logo.filename.rsplit('.', 1)[-1].lower() == 'svg':
+                flash(_('Ficheiros SVG não são suportados como logótipo. Utilize PNG, JPG ou WebP.'), 'danger')
+            elif _allowed_image(logo.filename):
+                os.makedirs(LOGO_FOLDER, exist_ok=True)
+                filename = secure_filename(logo.filename)
+                logo.save(os.path.join(LOGO_FOLDER, filename))
+                AppSetting.set('app_logo', filename)
 
         if request.form.get('remove_logo'):
             AppSetting.set('app_logo', '')

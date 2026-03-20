@@ -200,9 +200,12 @@
             {% endif %}
           </div>
           <div>
-            <input type="file" name="app_logo" id="logoInput" accept="image/*"
+            <input type="file" name="app_logo" id="logoInput" accept="image/png,image/jpeg,image/webp"
                    class="form-control form-control-sm mb-2" style="max-width:280px">
-            <div class="form-text">{{ _('PNG, JPG, SVG ou WebP · máx. 2 MB') }}</div>
+            <div class="form-text">{{ _('PNG, JPG ou WebP · máx. 2 MB') }}</div>
+            <div class="form-text text-warning" style="font-size:.75rem">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _('Ficheiros SVG não são suportados nos PDFs.') }}
+            </div>
             {% if settings.app_logo %}
             <div class="mt-2">
               <input type="hidden" name="remove_logo" id="removeLogoField" value="">

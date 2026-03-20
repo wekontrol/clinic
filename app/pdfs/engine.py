@@ -431,11 +431,15 @@ def _header_table(st, W, locale, settings, upload_folder, type_name, acc, doc_ti
         if logo_file:
             logo_path = os.path.join(upload_folder, 'logos', logo_file)
             if os.path.isfile(logo_path):
-                try:
-                    logo_img = Image(logo_path, width=16 * mm, height=10 * mm)
-                    logo_img.hAlign = 'LEFT'
-                except Exception:
-                    logo_img = None
+                ext = os.path.splitext(logo_file)[1].lower()
+                if ext in ('.svg',):
+                    logo_img = None  # SVG not supported by ReportLab/PIL
+                else:
+                    try:
+                        logo_img = Image(logo_path, width=16 * mm, height=10 * mm)
+                        logo_img.hAlign = 'LEFT'
+                    except Exception:
+                        logo_img = None
 
     left_items = []
     if logo_img:
