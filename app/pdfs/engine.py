@@ -49,27 +49,27 @@ A5_W    = PAGE[0] / 2          # 420.94 pt (one A5 portrait width)
 A5_H    = PAGE[1]              # 595.28 pt
 LABEL_H = 7  * mm              # "ORIGINAL / CÓPIA" strip at top
 FOOT_H  = 9  * mm              # teal footer bar at bottom
-SIDE_M  = 5  * mm              # left/right margin within each A5 half
-GAP_V   = 2  * mm              # gap below label strip and above footer bar
+SIDE_M  = 8  * mm              # left/right margin within each A5 half
+GAP_V   = 3.5  * mm            # gap below label strip and above footer bar
 FRAME_W = A5_W - 2 * SIDE_M   # usable content width per A5 half
 CONT_H  = PAGE[1] - LABEL_H - FOOT_H   # full vertical content band
 KIF_H   = CONT_H - 2 * GAP_V           # KeepInFrame height (with v-gap)
 
 # ─── Palette ──────────────────────────────────────────────────────────────────
-TEAL       = colors.HexColor('#14b8a6')
-TEAL_DARK  = colors.HexColor('#0d9488')
-TEAL_LIGHT = colors.HexColor('#ccfbf1')
-COPY_CLR   = colors.HexColor('#0f766e')   # right-half (CÓPIA) label bg
+TEAL       = colors.HexColor('#0891b2')     # Cyan professional
+TEAL_DARK  = colors.HexColor('#0e7490')     # Darker cyan
+TEAL_LIGHT = colors.HexColor('#cffafe')     # Light cyan
+COPY_CLR   = colors.HexColor('#0c5460')     # Deep cyan (copy label)
 NAVY       = colors.HexColor('#0f172a')
 DARK       = colors.HexColor('#1e293b')
-GREY       = colors.HexColor('#64748b')
-GREY_MID   = colors.HexColor('#94a3b8')
-BORDER     = colors.HexColor('#e2e8f0')
-ROW_ALT    = colors.HexColor('#f8fafc')
-HDR_BG     = colors.HexColor('#0d9488')
+GREY       = colors.HexColor('#475569')     # Darker grey for contrast
+GREY_MID   = colors.HexColor('#78716c')     # Medium grey
+BORDER     = colors.HexColor('#cbd5e1')     # Slightly darker border
+ROW_ALT    = colors.HexColor('#f0f9ff')     # Very light blue for alternating rows
+HDR_BG     = colors.HexColor('#0891b2')     # Cyan header
 WHITE      = colors.white
-SECTION_BG = colors.HexColor('#f0fdfa')
-STAMP_BG   = colors.HexColor('#e8edf2')
+SECTION_BG = colors.HexColor('#ecf8fc')     # Light cyan section bg
+STAMP_BG   = colors.HexColor('#dbeafe')     # Light blue for stamps
 CUT_CLR    = colors.HexColor('#94a3b8')
 
 # ─── i18n defaults ───────────────────────────────────────────────────────────
@@ -190,29 +190,29 @@ def _styles(accent=None):
             fontName=F_BOLD, fontSize=12, textColor=WHITE,
             alignment=TA_CENTER, leading=15, spaceAfter=0, spaceBefore=0),
         'clinic_name':  ParagraphStyle('ClinicName',
-            fontName=F_BOLD, fontSize=12, textColor=WHITE, spaceAfter=2, leading=14),
+            fontName=F_BOLD, fontSize=13, textColor=WHITE, spaceAfter=2, leading=15),
         'clinic_sub':   ParagraphStyle('ClinicSub',
-            fontName=F_REG, fontSize=9, textColor=colors.HexColor('#a7f3d0'), spaceAfter=1),
+            fontName=F_REG, fontSize=9.5, textColor=colors.HexColor('#cffafe'), spaceAfter=1),
         'clinic_contact': ParagraphStyle('ClinicContact',
-            fontName=F_REG, fontSize=7.5, textColor=colors.HexColor('#99f6e4')),
+            fontName=F_REG, fontSize=8, textColor=colors.HexColor('#a5f3fc')),
         'section':      ParagraphStyle('Section',
-            fontName=F_BOLD, fontSize=10, textColor=WHITE, alignment=TA_LEFT),
+            fontName=F_BOLD, fontSize=11, textColor=WHITE, alignment=TA_LEFT),
         'body':         ParagraphStyle('Body',
-            fontName=F_REG, fontSize=9.5, textColor=DARK, leading=14),
+            fontName=F_REG, fontSize=10, textColor=DARK, leading=15),
         'body_j':       ParagraphStyle('BodyJ',
-            fontName=F_REG, fontSize=9.5, textColor=DARK, leading=14, alignment=TA_JUSTIFY),
+            fontName=F_REG, fontSize=10, textColor=DARK, leading=15, alignment=TA_JUSTIFY),
         'label':        ParagraphStyle('Label',
-            fontName=F_BOLD, fontSize=8.5, textColor=GREY),
+            fontName=F_BOLD, fontSize=9, textColor=GREY),
         'label_val':    ParagraphStyle('LabelVal',
-            fontName=F_REG, fontSize=9.5, textColor=DARK),
+            fontName=F_REG, fontSize=10, textColor=DARK),
         'sig_name':     ParagraphStyle('SigName',
-            fontName=F_BOLD, fontSize=8.5, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
+            fontName=F_BOLD, fontSize=9, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
         'sig_label':    ParagraphStyle('SigLabel',
-            fontName=F_REG, fontSize=7.5, textColor=GREY, alignment=TA_CENTER),
+            fontName=F_REG, fontSize=8, textColor=GREY, alignment=TA_CENTER),
         'tbl_hdr':      ParagraphStyle('TblHdr',
-            fontName=F_BOLD, fontSize=8.5, textColor=WHITE),
+            fontName=F_BOLD, fontSize=9, textColor=WHITE),
         'tbl_body':     ParagraphStyle('TblBody',
-            fontName=F_REG, fontSize=8.5, textColor=DARK),
+            fontName=F_REG, fontSize=9, textColor=DARK),
         'small':        ParagraphStyle('Small',
             fontName=F_REG, fontSize=7.5, textColor=GREY),
         'small_c':      ParagraphStyle('SmallC',
