@@ -196,23 +196,23 @@ def _styles(accent=None):
         'clinic_contact': ParagraphStyle('ClinicContact',
             fontName=F_REG, fontSize=7.5, textColor=colors.HexColor('#99f6e4')),
         'section':      ParagraphStyle('Section',
-            fontName=F_BOLD, fontSize=9, textColor=WHITE, alignment=TA_LEFT),
+            fontName=F_BOLD, fontSize=10, textColor=WHITE, alignment=TA_LEFT),
         'body':         ParagraphStyle('Body',
-            fontName=F_REG, fontSize=9, textColor=DARK, leading=13.5),
+            fontName=F_REG, fontSize=9.5, textColor=DARK, leading=14),
         'body_j':       ParagraphStyle('BodyJ',
-            fontName=F_REG, fontSize=9, textColor=DARK, leading=13.5, alignment=TA_JUSTIFY),
+            fontName=F_REG, fontSize=9.5, textColor=DARK, leading=14, alignment=TA_JUSTIFY),
         'label':        ParagraphStyle('Label',
-            fontName=F_BOLD, fontSize=8, textColor=GREY),
+            fontName=F_BOLD, fontSize=8.5, textColor=GREY),
         'label_val':    ParagraphStyle('LabelVal',
-            fontName=F_REG, fontSize=9, textColor=DARK),
+            fontName=F_REG, fontSize=9.5, textColor=DARK),
         'sig_name':     ParagraphStyle('SigName',
             fontName=F_BOLD, fontSize=8.5, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
         'sig_label':    ParagraphStyle('SigLabel',
             fontName=F_REG, fontSize=7.5, textColor=GREY, alignment=TA_CENTER),
         'tbl_hdr':      ParagraphStyle('TblHdr',
-            fontName=F_BOLD, fontSize=8, textColor=WHITE),
+            fontName=F_BOLD, fontSize=8.5, textColor=WHITE),
         'tbl_body':     ParagraphStyle('TblBody',
-            fontName=F_REG, fontSize=8, textColor=DARK),
+            fontName=F_REG, fontSize=8.5, textColor=DARK),
         'small':        ParagraphStyle('Small',
             fontName=F_REG, fontSize=7.5, textColor=GREY),
         'small_c':      ParagraphStyle('SmallC',
@@ -342,7 +342,7 @@ def _make_canvas_class(show_pn=True, accent_color=None, watermark='',
 
 def _section_hdr(text, st, W, accent):
     """Left-accent strip + teal-tinted bg section header with enhanced styling."""
-    strip = Table([['']], colWidths=[4 * mm])
+    strip = Table([['']], colWidths=[5 * mm])
     strip.setStyle(TableStyle([
         ('BACKGROUND',   (0, 0), (-1, -1), accent),
         ('TOPPADDING',   (0, 0), (-1, -1), 0),
@@ -350,15 +350,15 @@ def _section_hdr(text, st, W, accent):
         ('LEFTPADDING',  (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
     ]))
-    label = Table([[Paragraph(text.upper(), st['section'])]], colWidths=[W - 4 * mm])
+    label = Table([[Paragraph(text.upper(), st['section'])]], colWidths=[W - 5 * mm])
     label.setStyle(TableStyle([
         ('BACKGROUND',   (0, 0), (-1, -1), accent),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 7),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING',   (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING',   (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 6),
     ]))
-    wrapper = Table([[strip, label]], colWidths=[4 * mm, W - 4 * mm])
+    wrapper = Table([[strip, label]], colWidths=[5 * mm, W - 5 * mm])
     wrapper.setStyle(TableStyle([
         ('LEFTPADDING',  (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -375,12 +375,12 @@ def _info_box(rows, st, col_widths):
              Paragraph(str(val or '—'), st['label_val'])] for lbl, val in rows]
     cmds = [
         ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING',   (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 7),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 7),
-        ('LINEBELOW',    (0, 0), (-1, -1), 0.5, BORDER),
-        ('BOX',          (0, 0), (-1, -1), 0.7, BORDER),
+        ('TOPPADDING',   (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 6),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('LINEBELOW',    (0, 0), (-1, -1), 0.6, BORDER),
+        ('BOX',          (0, 0), (-1, -1), 0.8, TEAL_DARK),
     ]
     for i in range(len(rows)):
         cmds.append(('BACKGROUND', (0, i), (-1, i),
@@ -610,16 +610,16 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
                      Paragraph(f'{total:,.2f} Kz', st['total_val'])])
         cmds = [
             ('BACKGROUND',    (0, 0), (-1, 0),   HDR_BG),
-            ('LINEBELOW',     (0, 0), (-1, 0),   1.2, TEAL_DARK),
-            ('BOX',           (0, 0), (-1, -2),  0.4, BORDER),
-            ('GRID',          (0, 1), (-1, -2),  0.3, BORDER),
-            ('BACKGROUND',    (0, -1),(-1, -1),  SECTION_BG),
-            ('LINEABOVE',     (0, -1),(-1, -1),  0.8, TEAL),
+            ('LINEBELOW',     (0, 0), (-1, 0),   1.5, TEAL_DARK),
+            ('BOX',           (0, 0), (-1, -2),  0.5, TEAL_DARK),
+            ('GRID',          (0, 1), (-1, -2),  0.4, BORDER),
+            ('BACKGROUND',    (0, -1),(-1, -1),  TEAL_LIGHT),
+            ('LINEABOVE',     (0, -1),(-1, -1),  1, TEAL_DARK),
             ('SPAN',          (2, -1),(3, -1)),
-            ('TOPPADDING',    (0, 0), (-1, -1),  4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1),  4),
-            ('LEFTPADDING',   (0, 0), (-1, -1),  5),
-            ('RIGHTPADDING',  (0, 0), (-1, -1),  5),
+            ('TOPPADDING',    (0, 0), (-1, -1),  5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1),  5),
+            ('LEFTPADDING',   (0, 0), (-1, -1),  6),
+            ('RIGHTPADDING',  (0, 0), (-1, -1),  6),
             ('VALIGN',        (0, 0), (-1, -1),  'MIDDLE'),
         ]
         for i in range(1, len(data) - 1):
@@ -849,13 +849,13 @@ def _story_prescription(session, locale, settings, TN, st, acc, W, upload_folder
                          Paragraph(rx.instructions or '—', st['tbl_body'])])
         cmds = [
             ('BACKGROUND',    (0, 0), (-1, 0),  HDR_BG),
-            ('LINEBELOW',     (0, 0), (-1, 0),  1.2, TEAL_DARK),
-            ('BOX',           (0, 0), (-1, -1), 0.4, BORDER),
-            ('GRID',          (0, 1), (-1, -1), 0.3, BORDER),
-            ('TOPPADDING',    (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 5),
+            ('LINEBELOW',     (0, 0), (-1, 0),  1.5, TEAL_DARK),
+            ('BOX',           (0, 0), (-1, -1), 0.5, TEAL_DARK),
+            ('GRID',          (0, 1), (-1, -1), 0.4, BORDER),
+            ('TOPPADDING',    (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ]
         for i in range(1, len(data)):
@@ -871,8 +871,8 @@ def _story_prescription(session, locale, settings, TN, st, acc, W, upload_folder
             colWidths=[W])
         validity_tbl.setStyle(TableStyle([
             ('BACKGROUND',   (0, 0), (-1, -1), STAMP_BG),
-            ('BOX',          (0, 0), (-1, -1), 0.5, BORDER),
-            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOX',          (0, 0), (-1, -1), 0.7, TEAL_DARK),
+            ('TOPPADDING',   (0, 0), (-1, -1), 5),
             ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
             ('LEFTPADDING',  (0, 0), (-1, -1), 6),
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
