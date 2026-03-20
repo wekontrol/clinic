@@ -210,9 +210,13 @@ def _styles(accent=None):
         'sig_label':    ParagraphStyle('SigLabel',
             fontName=F_REG, fontSize=8, textColor=GREY, alignment=TA_CENTER),
         'tbl_hdr':      ParagraphStyle('TblHdr',
-            fontName=F_BOLD, fontSize=9, textColor=WHITE),
+            fontName=F_BOLD, fontSize=9, textColor=WHITE, alignment=TA_CENTER),
         'tbl_body':     ParagraphStyle('TblBody',
-            fontName=F_REG, fontSize=9, textColor=DARK),
+            fontName=F_REG, fontSize=9, textColor=DARK, alignment=TA_LEFT),
+        'tbl_body_c':   ParagraphStyle('TblBodyC',
+            fontName=F_REG, fontSize=9, textColor=DARK, alignment=TA_CENTER),
+        'tbl_body_r':   ParagraphStyle('TblBodyR',
+            fontName=F_REG, fontSize=9, textColor=DARK, alignment=TA_RIGHT),
         'small':        ParagraphStyle('Small',
             fontName=F_REG, fontSize=7.5, textColor=GREY),
         'small_c':      ParagraphStyle('SmallC',
@@ -353,10 +357,11 @@ def _section_hdr(text, st, W, accent):
     label = Table([[Paragraph(text.upper(), st['section'])]], colWidths=[W - 5 * mm])
     label.setStyle(TableStyle([
         ('BACKGROUND',   (0, 0), (-1, -1), accent),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING',   (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING',   (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
+        ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     wrapper = Table([[strip, label]], colWidths=[5 * mm, W - 5 * mm])
     wrapper.setStyle(TableStyle([
@@ -375,10 +380,10 @@ def _info_box(rows, st, col_widths):
              Paragraph(str(val or '—'), st['label_val'])] for lbl, val in rows]
     cmds = [
         ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING',   (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING',(0, 0), (-1, -1), 3),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING',   (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ('LINEBELOW',    (0, 0), (-1, -1), 0.6, BORDER),
         ('BOX',          (0, 0), (-1, -1), 0.8, TEAL_DARK),
     ]
@@ -600,8 +605,8 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
             qty   = tmt.quantity or 1
             total += price * qty
             data.append([Paragraph(name,          st['tbl_body']),
-                         Paragraph(str(qty),       st['tbl_body']),
-                         Paragraph(f'{price:,.2f}',st['tbl_body']),
+                         Paragraph(str(qty),       st['tbl_body_c']),
+                         Paragraph(f'{price:,.2f}',st['tbl_body_r']),
                          Paragraph('',             st['tbl_body'])])
         tl = _s('total_label', locale, settings, TN)
         data.append([Paragraph('', st['tbl_hdr']),
@@ -616,10 +621,10 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
             ('BACKGROUND',    (0, -1),(-1, -1),  TEAL_LIGHT),
             ('LINEABOVE',     (0, -1),(-1, -1),  1, TEAL_DARK),
             ('SPAN',          (2, -1),(3, -1)),
-            ('TOPPADDING',    (0, 0), (-1, -1),  3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1),  3),
-            ('LEFTPADDING',   (0, 0), (-1, -1),  4),
-            ('RIGHTPADDING',  (0, 0), (-1, -1),  4),
+            ('TOPPADDING',    (0, 0), (-1, -1),  5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1),  5),
+            ('LEFTPADDING',   (0, 0), (-1, -1),  6),
+            ('RIGHTPADDING',  (0, 0), (-1, -1),  6),
             ('VALIGN',        (0, 0), (-1, -1),  'MIDDLE'),
         ]
         for i in range(1, len(data) - 1):
@@ -852,10 +857,10 @@ def _story_prescription(session, locale, settings, TN, st, acc, W, upload_folder
             ('LINEBELOW',     (0, 0), (-1, 0),  1.5, TEAL_DARK),
             ('BOX',           (0, 0), (-1, -1), 0.5, TEAL_DARK),
             ('GRID',          (0, 1), (-1, -1), 0.4, BORDER),
-            ('TOPPADDING',    (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
+            ('TOPPADDING',    (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING',   (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
         ]
         for i in range(1, len(data)):
