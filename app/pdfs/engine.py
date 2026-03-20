@@ -591,7 +591,7 @@ def _story_treatment_plan(session, locale, settings, TN, st, acc, W, upload_fold
         story.append(_section_hdr(_s('procedures', locale, settings, TN), st, W, acc))
         story.append(Spacer(1, 1.5 * mm))
 
-        cw  = [W * 0.50, W * 0.10, W * 0.22, W * 0.18]
+        cw  = [W * 0.58, W * 0.08, W * 0.20, W * 0.14]  # Wider procedure col
         hdr = [Paragraph(_s('procedure', locale, settings, TN), st['tbl_hdr']),
                Paragraph(_s('qty',       locale, settings, TN), st['tbl_hdr']),
                Paragraph(_s('price',     locale, settings, TN), st['tbl_hdr']),
